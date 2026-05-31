@@ -1,0 +1,14 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  repo: https://traefik.github.io/charts
+  chart: traefik
+  version: 40.2.0
+  targetNamespace: networking
+  createNamespace: false
+  valuesContent: |-
+    deployment:
+      replicas: 1

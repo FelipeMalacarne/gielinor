@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - namespaces.yaml
-  # - infrastructure.yaml
+  - infrastructure
   # - apps.yaml
 
 labels:
