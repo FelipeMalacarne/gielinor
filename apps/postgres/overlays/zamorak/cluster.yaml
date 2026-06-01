@@ -36,5 +36,5 @@ spec:
     enablePodMonitor: false
 
   storage:
-    size: 40Gi
+    size: 10Gi
     storageClass: local-path
