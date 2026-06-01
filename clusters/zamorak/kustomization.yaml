@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - namespaces.yaml
+  - ../../infrastructure/cloudflared
   - ../../infrastructure/whoami/overlays/zamorak
   # - apps.yaml
 
