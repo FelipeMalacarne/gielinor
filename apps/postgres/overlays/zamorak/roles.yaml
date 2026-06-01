@@ -1,0 +1,12 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-main
+spec:
+  managed:
+    roles:
+      - name: vaultwarden
+        ensure: present
+        login: true
+        passwordSecret:
+          name: vaultwarden-db-secret
