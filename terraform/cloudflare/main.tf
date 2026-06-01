@@ -32,6 +32,10 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "zamorak_tunnel_confi
         service  = "http://traefik.kube-system.svc.cluster.local:80"
       },
       {
+        hostname = "vault.${var.zone}"
+        service  = "http://traefik.kube-system.svc.cluster.local:80"
+      },
+      {
         service = "http_status:404"
       }
     ]
@@ -46,4 +50,14 @@ resource "cloudflare_dns_record" "whoami_dns" {
   ttl     = 1
   proxied = true
   comment = "[terraform] zamorak whoami"
+}
+
+resource "cloudflare_dns_record" "vault_dns" {
+  zone_id = var.zone_id
+  name    = "vault.${var.zone}"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.zamorak_tunnel.id}.cfargotunnel.com"
+  type    = "CNAME"
+  ttl     = 1
+  proxied = true
+  comment = "[terraform] zamorak vaultwarden"
 }
