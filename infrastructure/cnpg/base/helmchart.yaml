@@ -1,0 +1,14 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: cloudnative-pg
+  namespace: databases
+spec:
+  repo: https://cloudnative-pg.github.io/charts
+  chart: cloudnative-pg
+  targetNamespace: databases
+  createNamespace: true
+  valuesSecrets:
+    - name: cloudnative-pg-values
+      keys:
+        - values.yaml

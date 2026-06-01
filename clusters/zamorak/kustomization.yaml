@@ -5,6 +5,7 @@ resources:
   - namespaces.yaml
   - ../../infrastructure/cloudflared
   - ../../infrastructure/whoami/overlays/zamorak
+  - ../../infrastructure/cnpg/base
   # - apps.yaml
 
 labels:
