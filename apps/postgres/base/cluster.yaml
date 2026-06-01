@@ -3,7 +3,9 @@ kind: Cluster
 metadata:
   name: postgres-main
 spec:
+  description: "Main PostgreSQL cluster for Zamorak"
   instances: 1
 
   storage:
     size: 10Gi
+    storageClass: local-path

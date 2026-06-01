@@ -22,3 +22,27 @@ patches:
       - op: add
         path: /spec/storage/storageClass
         value: local-path
+      - op: add
+        path: /spec/postgresql
+        value:
+          parameters:
+            max_connections: "100"
+            shared_buffers: "512MB"
+            effective_cache_size: "2GB"
+            maintenance_work_mem: "128MB"
+            checkpoint_completion_target: "0.9"
+            wal_compression: "on"
+            log_min_duration_statement: "1000"
+      - op: add
+        path: /spec/resources
+        value:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: "2"
+            memory: 4Gi
+      - op: add
+        path: /spec/monitoring
+        value:
+          enablePodMonitor: false
