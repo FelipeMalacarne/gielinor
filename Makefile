@@ -7,7 +7,12 @@ TF_DIR := terraform
 .PHONY: apply encrypt decrypt tf-init tf-plan tf-apply
 
 apply: ## Deploy cluster to k8s (default: zamorak)
+	kubectx $(CLUSTER)
 	kustomize build --enable-alpha-plugins --enable-exec "clusters/$(CLUSTER)/" | kubectl apply -f -
+
+delete:
+	kubectx $(CLUSTER)
+	kustomize build --enable-alpha-plugins --enable-exec "clusters/$(CLUSTER)/" | kubectl delete -f -
 
 # ── Terraform ────────────────────────────────────────────
 tf-init:
