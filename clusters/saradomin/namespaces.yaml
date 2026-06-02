@@ -39,3 +39,10 @@ metadata:
   name: security
   labels:
     app.kubernetes.io/part-of: apps
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai
+  labels:
+    app.kubernetes.io/part-of: apps
