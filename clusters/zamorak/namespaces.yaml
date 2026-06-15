@@ -18,3 +18,10 @@ metadata:
   name: security
   labels:
     app.kubernetes.io/part-of: apps
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: automation
+  labels:
+    app.kubernetes.io/part-of: apps

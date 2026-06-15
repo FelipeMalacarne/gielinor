@@ -9,6 +9,7 @@ resources:
   - ../../apps/postgres/overlays/zamorak/
   - ../../apps/redis/overlays/zamorak/
   - ../../apps/vaultwarden/overlays/zamorak/
+  - ../../apps/n8n/overlays/zamorak/
   # - apps.yaml
 
 labels:

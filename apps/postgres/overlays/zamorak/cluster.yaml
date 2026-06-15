@@ -18,7 +18,7 @@ spec:
         ensure: present
         login: true
         passwordSecret:
-          name: vaultwarden-db-secret
+          name: n8n-db-secret
 
   postgresql:
     parameters:
