@@ -10,3 +10,16 @@ spec:
   owner: vaultwarden
 
   databaseReclaimPolicy: retain
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: postgres-main-n8n
+spec:
+  cluster:
+    name: postgres-main
+
+  name: n8n
+  owner: n8n
+
+  databaseReclaimPolicy: retain

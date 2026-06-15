@@ -14,6 +14,12 @@ spec:
         passwordSecret:
           name: vaultwarden-db-secret
 
+      - name: n8n
+        ensure: present
+        login: true
+        passwordSecret:
+          name: vaultwarden-db-secret
+
   postgresql:
     parameters:
       max_connections: "100"
