@@ -28,6 +28,10 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "zamorak_tunnel_confi
   config = {
     ingress = [
       {
+        hostname = "n8n.${var.zone}"
+        service  = "http://traefik.kube-system.svc.cluster.local:80"
+      },
+      {
         hostname = "whoami.${var.zone}"
         service  = "http://traefik.kube-system.svc.cluster.local:80"
       },
@@ -55,6 +59,16 @@ resource "cloudflare_dns_record" "whoami_dns" {
 resource "cloudflare_dns_record" "vault_dns" {
   zone_id = var.zone_id
   name    = "vault.${var.zone}"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.zamorak_tunnel.id}.cfargotunnel.com"
+  type    = "CNAME"
+  ttl     = 1
+  proxied = true
+  comment = "[terraform] zamorak vaultwarden"
+}
+
+resource "cloudflare_dns_record" "n8n_dns" {
+  zone_id = var.zone_id
+  name    = "n8n.${var.zone}"
   content = "${cloudflare_zero_trust_tunnel_cloudflared.zamorak_tunnel.id}.cfargotunnel.com"
   type    = "CNAME"
   ttl     = 1
