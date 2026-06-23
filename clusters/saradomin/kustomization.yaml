@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - namespaces.yaml
   - infrastructure
+  - ../../apps/openclaw/overlays/saradomin
   # - ../../apps/docling/overlays/saradomin
   # - apps.yaml
 
