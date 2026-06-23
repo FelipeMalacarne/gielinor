@@ -38,6 +38,16 @@ data:
           }
         ]
       },
+      "plugins": {
+        "entries": {
+          "workboard": {
+            "enabled": true
+          },
+          "memory-wiki": {
+            "enabled": true
+          }
+        }
+      },
       "cron": { "enabled": false }
     }
   AGENTS.md: |
