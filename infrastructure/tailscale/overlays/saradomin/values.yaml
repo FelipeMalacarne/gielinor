@@ -1,0 +1,12 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: tailscale-operator
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    installCRDs: true
+    operatorConfig:
+      hostname: k8s-operator
+      defaultTags:
+        - tag:k8s-operator

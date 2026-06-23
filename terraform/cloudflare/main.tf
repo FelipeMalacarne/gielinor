@@ -73,5 +73,56 @@ resource "cloudflare_dns_record" "n8n_dns" {
   type    = "CNAME"
   ttl     = 1
   proxied = true
-  comment = "[terraform] zamorak vaultwarden"
+  comment = "[terraform] zamorak n8n"
+}
+
+resource "cloudflare_zero_trust_tunnel_cloudflared" "saradomin_tunnel" {
+  account_id = var.account_id
+  name       = "Terraform saradomin tunnel"
+  config_src = "cloudflare"
+}
+
+data "cloudflare_zero_trust_tunnel_cloudflared_token" "saradomin_tunnel_token" {
+  account_id = var.account_id
+  tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.saradomin_tunnel.id
+}
+
+resource "cloudflare_zero_trust_tunnel_cloudflared_config" "saradomin_tunnel_config" {
+  tunnel_id  = cloudflare_zero_trust_tunnel_cloudflared.saradomin_tunnel.id
+  account_id = var.account_id
+  config = {
+    ingress = [
+      {
+        hostname = "whoami.saradomin.${var.zone}"
+        service  = "http://traefik.networking.svc.cluster.local:80"
+      },
+      {
+        hostname = "claw.${var.zone}"
+        service  = "http://traefik.networking.svc.cluster.local:80"
+      },
+      {
+        service = "http_status:404"
+      }
+    ]
+  }
+}
+
+resource "cloudflare_dns_record" "whoami_saradomin_dns" {
+  zone_id = var.zone_id
+  name    = "whoami.saradomin.${var.zone}"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.saradomin_tunnel.id}.cfargotunnel.com"
+  type    = "CNAME"
+  ttl     = 1
+  proxied = true
+  comment = "[terraform] saradomin whoami"
+}
+
+resource "cloudflare_dns_record" "openclaw_saradomin_dns" {
+  zone_id = var.zone_id
+  name    = "claw.${var.zone}"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.saradomin_tunnel.id}.cfargotunnel.com"
+  type    = "CNAME"
+  ttl     = 1
+  proxied = true
+  comment = "[terraform] saradomin openclaw"
 }

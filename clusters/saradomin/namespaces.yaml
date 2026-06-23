@@ -46,3 +46,10 @@ metadata:
   name: ai
   labels:
     app.kubernetes.io/part-of: apps
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tailscale
+  labels:
+    app.kubernetes.io/part-of: infrastructure

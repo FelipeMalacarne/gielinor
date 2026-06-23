@@ -17,3 +17,13 @@ spec:
                 name: openclaw
                 port:
                   number: 18789
+    - host: claw.ftm.dev.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: openclaw
+                port:
+                  number: 18789
