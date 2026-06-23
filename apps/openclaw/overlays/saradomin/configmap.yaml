@@ -7,6 +7,11 @@ metadata:
 data:
   openclaw.json: |
     {
+      "channels": {
+        "whatsapp": {
+          "allowFrom": ["+5554997158012"]
+        }
+      },
       "gateway": {
         "mode": "remote",
         "bind": "lan",
