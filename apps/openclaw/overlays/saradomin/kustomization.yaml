@@ -5,4 +5,5 @@ namespace: ai
 
 resources:
   - pvc.yaml
+  - configmap.yaml
   - service.yaml
