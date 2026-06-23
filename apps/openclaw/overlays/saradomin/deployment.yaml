@@ -33,7 +33,9 @@ spec:
             - sh
             - -c
             - |
-              cp /config/openclaw.json /home/node/.openclaw/openclaw.json
+              if [ ! -f /home/node/.openclaw/openclaw.json ]; then
+                cp /config/openclaw.json /home/node/.openclaw/openclaw.json
+              fi
               mkdir -p /home/node/.openclaw/workspace
               cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md
           securityContext:
@@ -106,6 +108,8 @@ spec:
                   name: openclaw-secrets
                   key: OPENROUTER_API_KEY
                   optional: true
+            - name: OPENCLAW_ALLOW_INSECURE_PRIVATE_WS
+              value: "1"
           resources:
             requests:
               memory: 512Mi
