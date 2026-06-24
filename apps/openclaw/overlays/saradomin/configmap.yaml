@@ -1,3 +1,5 @@
+# ConfigMap: openclaw-config
+# Adicionar/atualizar no seu repo de manifests
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -16,39 +18,91 @@ data:
         "mode": "remote",
         "bind": "lan",
         "port": 18789,
+        "remote": {
+          "url": "http://openclaw:18789"
+        },
         "auth": {
           "mode": "token"
         },
         "controlUi": {
-          "enabled": true
-        }
+          "enabled": true,
+          "allowedOrigins": [
+            "https://claw.ftm.dev.br"
+          ]
+        },
+        "trustedProxies": ["10.42.0.0/16"]
       },
       "agents": {
         "defaults": {
           "workspace": "~/.openclaw/workspace",
           "model": {
             "primary": "opencode-go/deepseek-v4-flash"
-          }
+          },
+          "bootstrapMaxChars": 50000,
+          "bootstrapTotalMaxChars": 300000,
+          "contextInjection": "always"
         },
         "list": [
           {
             "id": "default",
             "name": "OpenClaw Assistant",
-            "workspace": "~/.openclaw/workspace"
+            "workspace": "~/.openclaw/workspace",
+            "model": "opencode-go/mimo-v2.5"
           }
         ]
       },
+      "tools": {
+        "web": {
+          "search": {
+            "provider": "duckduckgo"
+          }
+        }
+      },
       "plugins": {
         "entries": {
+          "memory-core": {
+            "config": {
+              "dreaming": {
+                "enabled": true
+              }
+            }
+          },
           "workboard": {
             "enabled": true
           },
           "memory-wiki": {
             "enabled": true
+          },
+          "tavily": {
+            "enabled": true,
+            "config": {
+              "webSearch": {
+                "apiKey": "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"
+              }
+            }
           }
         }
       },
-      "cron": { "enabled": false }
+      "cron": {
+        "enabled": false
+      },
+      "meta": {
+        "lastTouchedVersion": "2026.6.9",
+        "lastTouchedAt": "2026-06-23T18:47:56.029Z"
+      },
+      "skills": {
+        "entries": {
+          "1password": {
+            "enabled": false
+          },
+          "apple-notes": {
+            "enabled": false
+          },
+          "apple-reminders": {
+            "enabled": false
+          }
+        }
+      }
     }
   AGENTS.md: |
     # OpenClaw Assistant
