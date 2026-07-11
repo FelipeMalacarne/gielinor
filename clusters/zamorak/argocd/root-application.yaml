@@ -3,8 +3,10 @@ kind: Application
 metadata:
   name: zamorak-root
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
-  project: zamorak
+  project: default
   source:
     repoURL: https://github.com/FelipeMalacarne/gielinor.git
     targetRevision: main

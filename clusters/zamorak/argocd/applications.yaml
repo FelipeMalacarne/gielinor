@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: zamorak-argocd
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "-3"
 spec:
@@ -32,6 +34,8 @@ kind: Application
 metadata:
   name: zamorak-namespaces
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "-2"
 spec:
@@ -61,6 +65,8 @@ kind: Application
 metadata:
   name: zamorak-cnpg
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 spec:
@@ -90,6 +96,8 @@ kind: Application
 metadata:
   name: zamorak-cloudflared
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: zamorak
   source:
@@ -119,6 +127,8 @@ kind: Application
 metadata:
   name: zamorak-whoami
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: zamorak
   source:
@@ -146,6 +156,8 @@ kind: Application
 metadata:
   name: zamorak-postgres
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: zamorak
   source:
@@ -175,6 +187,8 @@ kind: Application
 metadata:
   name: zamorak-redis
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: zamorak
   source:
@@ -204,6 +218,8 @@ kind: Application
 metadata:
   name: zamorak-vaultwarden
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: zamorak
   source:
@@ -233,6 +249,8 @@ kind: Application
 metadata:
   name: zamorak-n8n
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: zamorak
   source:

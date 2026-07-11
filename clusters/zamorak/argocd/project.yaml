@@ -21,6 +21,35 @@ spec:
   clusterResourceWhitelist:
     - group: ""
       kind: Namespace
+      name: argocd
+    - group: ""
+      kind: Namespace
+      name: automation
+    - group: ""
+      kind: Namespace
+      name: databases
+    - group: ""
+      kind: Namespace
+      name: networking
+    - group: ""
+      kind: Namespace
+      name: security
   namespaceResourceWhitelist:
-    - group: "*"
-      kind: "*"
+    - group: ""
+      kind: PersistentVolumeClaim
+    - group: ""
+      kind: Secret
+    - group: ""
+      kind: Service
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: helm.cattle.io
+      kind: HelmChart
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: postgresql.cnpg.io
+      kind: Cluster
+    - group: postgresql.cnpg.io
+      kind: Database
