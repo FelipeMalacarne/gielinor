@@ -3,5 +3,4 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
-  - ksops-plugin.yaml
   - helmchart.yaml

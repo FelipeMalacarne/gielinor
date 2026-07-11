@@ -38,6 +38,18 @@ spec:
           hs.status = "Progressing"
           hs.message = "Waiting for application status"
           return hs
+      cmp:
+        create: true
+        plugins:
+          kustomize-ksops:
+            allowConcurrency: true
+            preserveFileMode: false
+            provideGitCreds: false
+            generate:
+              command:
+                - sh
+                - -ceu
+                - kustomize build --enable-alpha-plugins --enable-exec .
 
     controller:
       resources:
@@ -92,9 +104,9 @@ spec:
               mountPath: /home/argocd/cmp-server/plugins
             - name: cmp-tmp
               mountPath: /tmp
-            - name: ksops-plugin-config
+            - name: argocd-cmp-cm
               mountPath: /home/argocd/cmp-server/config/plugin.yaml
-              subPath: plugin.yaml
+              subPath: kustomize-ksops.yaml
               readOnly: true
             - name: ksops-age-key
               mountPath: /home/argocd/.config/sops/age
@@ -102,9 +114,9 @@ spec:
       volumes:
         - name: cmp-tmp
           emptyDir: {}
-        - name: ksops-plugin-config
+        - name: argocd-cmp-cm
           configMap:
-            name: argocd-ksops-cmp
+            name: argocd-cmp-cm
         - name: ksops-age-key
           secret:
             secretName: argocd-ksops-age-key
