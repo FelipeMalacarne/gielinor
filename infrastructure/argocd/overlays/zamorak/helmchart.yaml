@@ -1,0 +1,119 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  repo: https://argoproj.github.io/argo-helm
+  chart: argo-cd
+  version: 10.1.3
+  targetNamespace: argocd
+  createNamespace: true
+  timeout: 10m
+  valuesContent: |-
+    fullnameOverride: argocd
+
+    dex:
+      enabled: false
+
+    notifications:
+      enabled: false
+
+    applicationSet:
+      enabled: false
+
+    redis-ha:
+      enabled: false
+
+    configs:
+      cm:
+        timeout.reconciliation: 180s
+        resource.customizations.health.argoproj.io_Application: |
+          hs = {}
+          if obj.status ~= nil and obj.status.health ~= nil then
+            hs.status = obj.status.health.status
+            hs.message = obj.status.health.message or ""
+            return hs
+          end
+          hs.status = "Progressing"
+          hs.message = "Waiting for application status"
+          return hs
+
+    controller:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+
+    server:
+      service:
+        type: ClusterIP
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 250m
+          memory: 256Mi
+
+    repoServer:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      extraContainers:
+        - name: kustomize-ksops
+          image: viaductoss/ksops:v4.5.1
+          command:
+            - /var/run/argocd/argocd-cmp-server
+          env:
+            - name: SOPS_AGE_KEY_FILE
+              value: /home/argocd/.config/sops/age/keys.txt
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+          volumeMounts:
+            - name: var-files
+              mountPath: /var/run/argocd
+            - name: plugins
+              mountPath: /home/argocd/cmp-server/plugins
+            - name: cmp-tmp
+              mountPath: /tmp
+            - name: ksops-plugin-config
+              mountPath: /home/argocd/cmp-server/config/plugin.yaml
+              subPath: plugin.yaml
+              readOnly: true
+            - name: ksops-age-key
+              mountPath: /home/argocd/.config/sops/age
+              readOnly: true
+      volumes:
+        - name: cmp-tmp
+          emptyDir: {}
+        - name: ksops-plugin-config
+          configMap:
+            name: argocd-ksops-cmp
+        - name: ksops-age-key
+          secret:
+            secretName: argocd-ksops-age-key
+
+    redis:
+      resources:
+        requests:
+          cpu: 25m
+          memory: 64Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi

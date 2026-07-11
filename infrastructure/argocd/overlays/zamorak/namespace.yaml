@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    app.kubernetes.io/part-of: infrastructure
+    gielinor.felipe/cluster: zamorak
+    gielinor.felipe/site: oracle
