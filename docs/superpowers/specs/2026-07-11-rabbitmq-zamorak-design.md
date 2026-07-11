@@ -15,9 +15,9 @@ as cluster-wide controllers in the `rabbitmq-system` namespace. Version their
 pinned upstream manifests locally and include them from the zamorak deployment
 root.
 
-Deploy a single `RabbitmqCluster` named `n8n-rabbitmq` in the existing
-`databases` namespace. This keeps it with the other shared stateful services
-(PostgreSQL and Redis) while leaving application namespaces independent.
+Deploy a single `RabbitmqCluster` named `rabbitmq` in the existing `databases`
+namespace. This keeps it with the other shared stateful services (PostgreSQL and
+Redis) while leaving application namespaces independent.
 
 The cluster has one replica, a 10 Gi `local-path` volume, a 500m CPU request and
 limit, and a 1 Gi memory request and limit. This is a non-HA configuration:
@@ -28,7 +28,7 @@ public exposure.
 Applications connect to:
 
 ```
-n8n-rabbitmq.databases.svc.cluster.local:5672
+rabbitmq.databases.svc.cluster.local:5672
 ```
 
 Connections are internal to Kubernetes. TLS is out of scope for this initial,
