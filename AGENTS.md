@@ -18,8 +18,8 @@
   ```
 
 - Keep both Kustomize flags: overlays use executable KSOPS generators, so plain `kubectl kustomize` is not equivalent.
-- `make apply` defaults to `zamorak` and first changes the active kube context with `kubectx`. For requested live deployments, always name the target explicitly: `make apply CLUSTER=saradomin` or `make apply CLUSTER=zamorak`.
-- `make delete` has the same default and context switch and deletes the full rendered cluster root. Do not run `apply` or `delete` merely to validate manifests.
+- `make apply` and `make delete` are manual-only for `saradomin`, default to `saradomin`, and reject `CLUSTER=zamorak` before cluster contact. For any requested live deployment, always name the target explicitly: `make apply CLUSTER=saradomin` or `make delete CLUSTER=saradomin`.
+- `zamorak` is reconciled by Argo CD; live setup uses exactly `make bootstrap-argocd CLUSTER=zamorak AGE_KEY_FILE=<path-to-age-key>` once or idempotently for recovery. Never run bootstrap merely to validate manifests; rendering remains the manifest validation method.
 - Helm-managed infrastructure uses the K3s `helm.cattle.io/v1` `HelmChart` CRD, not direct `helm install` commands.
 
 ## Secrets And Terraform
