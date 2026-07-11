@@ -1,18 +1,48 @@
 DEC_SECRETS := $(shell find . -name "*.dec.yaml" 2>/dev/null)
 ENC_SECRETS  := $(shell find . -name "secrets.yaml" 2>/dev/null)
 
-CLUSTER ?= zamorak
+CLUSTER ?= saradomin
 TF_DIR := terraform
+AGE_KEY_FILE ?=
+ARGOCD_APP ?= zamorak-root
 
-.PHONY: apply encrypt decrypt tf-init tf-plan tf-apply
+.PHONY: apply delete bootstrap-argocd argocd-apps argocd-status argocd-refresh encrypt decrypt tf-init tf-plan tf-apply
 
-apply: ## Deploy cluster to k8s (default: zamorak)
+apply: ## Deploy saradomin with kustomize
+	@test "$(CLUSTER)" = "saradomin" || { echo "zamorak is managed by Argo CD; commit to main or run make argocd-refresh CLUSTER=zamorak" >&2; exit 2; }
 	kubectx $(CLUSTER)
 	kustomize build --enable-alpha-plugins --enable-exec "clusters/$(CLUSTER)/" | kubectl apply -f -
 
-delete:
+delete: ## Delete saradomin resources rendered by kustomize
+	@test "$(CLUSTER)" = "saradomin" || { echo "zamorak is managed by Argo CD; remove resources from Git and let Argo CD prune them" >&2; exit 2; }
 	kubectx $(CLUSTER)
 	kustomize build --enable-alpha-plugins --enable-exec "clusters/$(CLUSTER)/" | kubectl delete -f -
+
+bootstrap-argocd: ## One-time Argo CD bootstrap for zamorak; AGE_KEY_FILE is required
+	@test "$(CLUSTER)" = "zamorak" || { echo "bootstrap-argocd supports only CLUSTER=zamorak" >&2; exit 2; }
+	@test -n "$(AGE_KEY_FILE)" || { echo "AGE_KEY_FILE must point to the SOPS age private key" >&2; exit 2; }
+	@test -r "$(AGE_KEY_FILE)" || { echo "AGE_KEY_FILE is not readable: $(AGE_KEY_FILE)" >&2; exit 2; }
+	kubectl --context="$(CLUSTER)" create namespace argocd --dry-run=client -o yaml | kubectl --context="$(CLUSTER)" apply -f -
+	kubectl --context="$(CLUSTER)" -n argocd create secret generic argocd-ksops-age-key --from-file=keys.txt="$(AGE_KEY_FILE)" --dry-run=client -o yaml | kubectl --context="$(CLUSTER)" apply -f -
+	kustomize build infrastructure/argocd/overlays/zamorak | kubectl --context="$(CLUSTER)" apply -f -
+	kubectl --context="$(CLUSTER)" wait --for=condition=Established --timeout=5m crd/appprojects.argoproj.io
+	kubectl --context="$(CLUSTER)" wait --for=condition=Established --timeout=5m crd/applications.argoproj.io
+	kubectl --context="$(CLUSTER)" -n argocd rollout status deployment/argocd-repo-server --timeout=10m
+	kubectl --context="$(CLUSTER)" -n argocd rollout status deployment/argocd-server --timeout=10m
+	kubectl --context="$(CLUSTER)" apply -f clusters/zamorak/argocd/project.yaml
+	kubectl --context="$(CLUSTER)" apply -f clusters/zamorak/argocd/root-application.yaml
+
+argocd-apps: ## List zamorak Argo CD Applications
+	@test "$(CLUSTER)" = "zamorak" || { echo "argocd-apps supports only CLUSTER=zamorak" >&2; exit 2; }
+	kubectl --context="$(CLUSTER)" -n argocd get applications.argoproj.io
+
+argocd-status: ## Show an Argo CD Application; ARGOCD_APP defaults to zamorak-root
+	@test "$(CLUSTER)" = "zamorak" || { echo "argocd-status supports only CLUSTER=zamorak" >&2; exit 2; }
+	kubectl --context="$(CLUSTER)" -n argocd get application.argoproj.io "$(ARGOCD_APP)" -o yaml
+
+argocd-refresh: ## Request a hard refresh; ARGOCD_APP defaults to zamorak-root
+	@test "$(CLUSTER)" = "zamorak" || { echo "argocd-refresh supports only CLUSTER=zamorak" >&2; exit 2; }
+	kubectl --context="$(CLUSTER)" -n argocd annotate application.argoproj.io "$(ARGOCD_APP)" argocd.argoproj.io/refresh=hard --overwrite
 
 # ── Terraform ────────────────────────────────────────────
 tf-init:
