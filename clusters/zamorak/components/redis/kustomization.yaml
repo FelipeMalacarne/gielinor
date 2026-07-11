@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../../apps/redis/overlays/zamorak
+
+labels:
+  - pairs:
+      gielinor.felipe/cluster: zamorak
+      gielinor.felipe/site: oracle
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: false
