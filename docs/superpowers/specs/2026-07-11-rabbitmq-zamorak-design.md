@@ -43,10 +43,11 @@ leaves the cluster.
 ## Access Model
 
 The Topology Operator declares an `events` virtual host and a non-admin `n8n`
-user. Its password is stored in a KSOPS-encrypted Secret alongside the RabbitMQ
-overlay; no plaintext secret is committed. The account can publish to exchanges
-and consume from queues in `events`, but has no configure permission and cannot
-create or change RabbitMQ resources.
+user. It generates the username and password and writes them to its owned
+Kubernetes credentials Secret; no plaintext or encrypted application credential
+is committed. The account can publish to exchanges and consume from queues in
+`events`, but has no configure permission and cannot create or change RabbitMQ
+resources.
 
 n8n stays in the `automation` namespace. Its dedicated AMQP credential is
 entered once in the n8n Credentials UI using the endpoint above, the `events`
