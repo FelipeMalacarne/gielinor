@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: zamorak
+  namespace: argocd
+spec:
+  description: GitOps-managed workloads for the zamorak cluster
+  sourceRepos:
+    - https://github.com/FelipeMalacarne/gielinor.git
+  destinations:
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: automation
+      server: https://kubernetes.default.svc
+    - namespace: databases
+      server: https://kubernetes.default.svc
+    - namespace: networking
+      server: https://kubernetes.default.svc
+    - namespace: security
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
