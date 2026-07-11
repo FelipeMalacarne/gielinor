@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cnpg-api-ready
+  namespace: databases
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cnpg-api-ready
+rules:
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    resourceNames:
+      - clusters.postgresql.cnpg.io
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cnpg-api-ready
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cnpg-api-ready
+subjects:
+  - kind: ServiceAccount
+    name: cnpg-api-ready
+    namespace: databases
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cnpg-api-ready
+  namespace: databases
+rules:
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    resourceNames:
+      - cloudnative-pg
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cnpg-api-ready
+  namespace: databases
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cnpg-api-ready
+subjects:
+  - kind: ServiceAccount
+    name: cnpg-api-ready
+    namespace: databases
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cnpg-api-ready
+  namespace: databases
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 600
+  template:
+    spec:
+      serviceAccountName: cnpg-api-ready
+      restartPolicy: Never
+      containers:
+        - name: wait-for-cnpg
+          image: registry.k8s.io/kubectl:v1.36.2
+          command:
+            - /bin/sh
+            - -ceu
+            - |
+              until kubectl get crd clusters.postgresql.cnpg.io >/dev/null 2>&1; do sleep 2; done
+              kubectl wait --for=condition=Established --timeout=5m crd/clusters.postgresql.cnpg.io
+              until kubectl -n databases get deployment/cloudnative-pg >/dev/null 2>&1; do sleep 2; done
+              kubectl -n databases wait --for=condition=Available --timeout=5m deployment/cloudnative-pg
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi

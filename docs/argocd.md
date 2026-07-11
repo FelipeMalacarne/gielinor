@@ -17,7 +17,7 @@ make bootstrap-argocd CLUSTER=zamorak AGE_KEY_FILE="$SOPS_AGE_KEY_FILE"
 ```
 
 The command installs Argo CD, waits for its CRDs and repo server, and creates
-the `zamorak-root` Application. Afterwards, Argo CD polls `main` every three
+the `zamorak-root` Application. Afterwards, Argo CD polls `main` roughly every three to four
 minutes, syncs changes automatically, repairs drift, and prunes resources that
 are removed from their managed component paths.
 

@@ -38,6 +38,20 @@ spec:
           hs.status = "Progressing"
           hs.message = "Waiting for application status"
           return hs
+        resource.customizations.health.helm.cattle.io_HelmChart: |
+          hs = {}
+          if obj.status ~= nil and obj.status.conditions ~= nil then
+            for _, condition in ipairs(obj.status.conditions) do
+              if condition.type == "Failed" and condition.status == "True" then
+                hs.status = "Degraded"
+                hs.message = condition.message or "K3s HelmChart failed"
+                return hs
+              end
+            end
+          end
+          hs.status = "Healthy"
+          hs.message = "HelmChart submission accepted; readiness is gated by the owning Application"
+          return hs
       cmp:
         create: true
         plugins:

@@ -36,6 +36,12 @@ spec:
     - group: ""
       kind: Namespace
       name: security
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: cnpg-api-ready
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+      name: cnpg-api-ready
   namespaceResourceWhitelist:
     - group: ""
       kind: PersistentVolumeClaim
@@ -55,3 +61,11 @@ spec:
       kind: Cluster
     - group: postgresql.cnpg.io
       kind: Database
+    - group: ""
+      kind: ServiceAccount
+    - group: batch
+      kind: Job
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding

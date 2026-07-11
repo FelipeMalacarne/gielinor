@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../../../infrastructure/cnpg/base
+  - readiness.yaml
 
 labels:
   - pairs:
