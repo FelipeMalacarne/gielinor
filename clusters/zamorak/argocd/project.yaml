@@ -3,6 +3,8 @@ kind: AppProject
 metadata:
   name: zamorak
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-4"
 spec:
   description: GitOps-managed workloads for the zamorak cluster
   sourceRepos:
