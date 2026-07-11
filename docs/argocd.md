@@ -21,12 +21,11 @@ the `zamorak-root` Application. Afterwards, Argo CD polls `main` every three
 minutes, syncs changes automatically, repairs drift, and prunes resources that
 are removed from their managed component paths.
 
-## Status And Refresh
+## Status
 
 ```sh
 make argocd-apps CLUSTER=zamorak
 make argocd-status CLUSTER=zamorak ARGOCD_APP=zamorak-root
-make argocd-refresh CLUSTER=zamorak ARGOCD_APP=zamorak-root
 ```
 
 Applications with encrypted manifests use the `kustomize-ksops` plugin. A
@@ -46,16 +45,13 @@ Retrieve the generated initial password only when an administrator needs to log
 in, then change it immediately through the Argo CD UI or CLI:
 
 ```sh
-kubectl --context=zamorak -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; printf '\n'
+kubectl --context=zamorak -n argocd get secret argocd-initial-admin-secret -o go-template='{{.data.password | base64decode}}{{"\n"}}'
 ```
 
 ## Recovery
 
-If KSOPS reports an age-key error, recreate the bootstrap Secret from the same
-local key and restart the repo server:
+If KSOPS reports an age-key error, rerun the idempotent bootstrap target with the same local key:
 
 ```sh
-kubectl --context=zamorak -n argocd create secret generic argocd-ksops-age-key --from-file=keys.txt="$SOPS_AGE_KEY_FILE" --dry-run=client -o yaml | kubectl --context=zamorak apply -f -
-kubectl --context=zamorak -n argocd rollout restart deployment/argocd-repo-server
-kubectl --context=zamorak -n argocd rollout status deployment/argocd-repo-server --timeout=10m
+make bootstrap-argocd CLUSTER=zamorak AGE_KEY_FILE="$SOPS_AGE_KEY_FILE"
 ```

@@ -6,10 +6,10 @@ TF_DIR := terraform
 AGE_KEY_FILE ?=
 ARGOCD_APP ?= zamorak-root
 
-.PHONY: apply delete bootstrap-argocd argocd-apps argocd-status argocd-refresh encrypt decrypt tf-init tf-plan tf-apply
+.PHONY: apply delete bootstrap-argocd argocd-apps argocd-status encrypt decrypt tf-init tf-plan tf-apply
 
 apply: ## Deploy saradomin with kustomize
-	@test "$(CLUSTER)" = "saradomin" || { echo "zamorak is managed by Argo CD; commit to main or run make argocd-refresh CLUSTER=zamorak" >&2; exit 2; }
+	@test "$(CLUSTER)" = "saradomin" || { echo "zamorak is managed by Argo CD; commit to main and wait for reconciliation" >&2; exit 2; }
 	kubectx $(CLUSTER)
 	kustomize build --enable-alpha-plugins --enable-exec "clusters/$(CLUSTER)/" | kubectl apply -f -
 
@@ -39,10 +39,6 @@ argocd-apps: ## List zamorak Argo CD Applications
 argocd-status: ## Show an Argo CD Application; ARGOCD_APP defaults to zamorak-root
 	@test "$(CLUSTER)" = "zamorak" || { echo "argocd-status supports only CLUSTER=zamorak" >&2; exit 2; }
 	kubectl --context="$(CLUSTER)" -n argocd get application.argoproj.io "$(ARGOCD_APP)" -o yaml
-
-argocd-refresh: ## Request a hard refresh; ARGOCD_APP defaults to zamorak-root
-	@test "$(CLUSTER)" = "zamorak" || { echo "argocd-refresh supports only CLUSTER=zamorak" >&2; exit 2; }
-	kubectl --context="$(CLUSTER)" -n argocd annotate application.argoproj.io "$(ARGOCD_APP)" argocd.argoproj.io/refresh=hard --overwrite
 
 # ── Terraform ────────────────────────────────────────────
 tf-init:
