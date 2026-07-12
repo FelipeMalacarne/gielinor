@@ -26,6 +26,8 @@ spec:
       enabled: false
 
     configs:
+      params:
+        server.insecure: true
       cm:
         timeout.reconciliation: 180s
         resource.customizations.health.helm.cattle.io_HelmChart: |
