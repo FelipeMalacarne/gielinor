@@ -51,9 +51,11 @@ spec:
             provideGitCreds: false
             generate:
               command:
-                - sh
-                - -ceu
-                - kustomize build --enable-alpha-plugins --enable-exec .
+                - kustomize
+                - build
+                - --enable-alpha-plugins
+                - --enable-exec
+                - .
 
     controller:
       resources:
