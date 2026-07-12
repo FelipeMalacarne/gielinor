@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - components/namespaces
   - infrastructure/argocd
-  - infrastructure/cert-manager
   - infrastructure/rabbitmq-operators
   - infrastructure/cloudflared
   - infrastructure/whoami
