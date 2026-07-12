@@ -4,5 +4,6 @@ kind: Kustomization
 namespace: networking
 
 resources:
-  - ../../base/
+  - deployment.yaml
+  - service.yaml
   - ingress.yaml

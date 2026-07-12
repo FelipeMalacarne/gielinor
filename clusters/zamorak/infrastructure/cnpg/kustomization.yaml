@@ -12,4 +12,3 @@ secretGenerator:
 
 generatorOptions:
   disableNameSuffixHash: true
-

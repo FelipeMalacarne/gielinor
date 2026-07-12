@@ -3,10 +3,13 @@ kind: Kustomization
 
 resources:
   - namespaces.yaml
-  - infrastructure
-  - ../../apps/openclaw/overlays/saradomin
-  # - ../../apps/docling/overlays/saradomin
-  # - apps.yaml
+  - infrastructure/traefik
+  - infrastructure/coredns
+  - infrastructure/whoami
+  - infrastructure/tailscale
+  - infrastructure/cloudflared
+  - apps/openclaw
+  # - apps/docling
 
 labels:
   - pairs:

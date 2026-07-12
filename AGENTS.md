@@ -5,7 +5,7 @@
 - This is infrastructure as code for two K3s clusters: `saradomin` (home) and `zamorak` (Oracle Cloud). Kubernetes resources use Kustomize and KSOPS/SOPS; Terraform manages Cloudflare tunnels and DNS.
 - `zamorak` runs on Oracle Cloud with 4 vCPUs, 24 GB RAM, and 200 GB storage; `saradomin` runs on an Intel N95 mini PC with 16 GB RAM and 512 GB storage. Keep these node limits in mind when setting workload resource requests.
 - Treat `clusters/<cluster>/kustomization.yaml` as the deployment roots. A component is inactive unless it is transitively referenced there; for example, the `docling` resource is currently commented out.
-- `README.md` describes a proposed structure that has drifted from the repository. Trust current kustomizations and the `Makefile`, not absent README entries or its `justfile` reference.
+- `README.md` documents the cluster-centric structure. Trust current cluster-root kustomizations and the `Makefile` as the deployment authority.
 - Apps and infrastructure do not all have identical `base/` and `overlays/` layouts. Follow the nearest working component instead of creating a presumed directory pattern.
 
 ## Render And Deploy

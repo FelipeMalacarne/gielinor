@@ -3,15 +3,14 @@ kind: Kustomization
 
 resources:
   - components/namespaces
-  - ../../infrastructure/argocd/overlays/zamorak
-  - ../../infrastructure/cloudflared
-  - ../../infrastructure/whoami/overlays/zamorak
-  - ../../infrastructure/cnpg/base
-  - ../../apps/postgres/overlays/zamorak/
-  - ../../apps/redis/overlays/zamorak/
-  - ../../apps/vaultwarden/overlays/zamorak/
-  - ../../apps/n8n/overlays/zamorak/
-  # - apps.yaml
+  - infrastructure/argocd
+  - infrastructure/cloudflared
+  - infrastructure/whoami
+  - infrastructure/cnpg
+  - apps/postgres
+  - apps/redis
+  - apps/vaultwarden
+  - apps/n8n
 
 labels:
   - pairs:

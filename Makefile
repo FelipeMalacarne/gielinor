@@ -24,7 +24,7 @@ bootstrap-argocd: ## One-time Argo CD bootstrap for zamorak; AGE_KEY_FILE is req
 	@test -r "$(AGE_KEY_FILE)" || { echo "AGE_KEY_FILE is not readable: $(AGE_KEY_FILE)" >&2; exit 2; }
 	kubectl --context="$(CLUSTER)" create namespace argocd --dry-run=client -o yaml | kubectl --context="$(CLUSTER)" apply -f -
 	kubectl --context="$(CLUSTER)" -n argocd create secret generic argocd-ksops-age-key --from-file=keys.txt="$(AGE_KEY_FILE)" --dry-run=client -o yaml | kubectl --context="$(CLUSTER)" apply -f -
-	kustomize build infrastructure/argocd/overlays/zamorak | kubectl --context="$(CLUSTER)" apply -f -
+	kustomize build clusters/zamorak/infrastructure/argocd | kubectl --context="$(CLUSTER)" apply -f -
 	kubectl --context="$(CLUSTER)" wait --for=condition=Established --timeout=5m crd/appprojects.argoproj.io
 	kubectl --context="$(CLUSTER)" wait --for=condition=Established --timeout=5m crd/applications.argoproj.io
 	kubectl --context="$(CLUSTER)" -n argocd wait --for=create --timeout=10m deployment/argocd-repo-server

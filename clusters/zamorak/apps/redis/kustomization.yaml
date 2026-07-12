@@ -4,7 +4,8 @@ kind: Kustomization
 namespace: databases
 
 resources:
-  - ../../base
+  - service.yaml
+  - statefulset.yaml
 
 generators:
   - ksops.yaml
