@@ -17,9 +17,10 @@ make bootstrap-argocd CLUSTER=zamorak AGE_KEY_FILE="$SOPS_AGE_KEY_FILE"
 ```
 
 The command installs Argo CD, waits for its CRDs and repo server, and creates
-the `zamorak-root` Application. Afterwards, Argo CD polls `main` roughly every three to four
-minutes, syncs changes automatically, repairs drift, and prunes resources that
-are removed from their managed component paths.
+the `zamorak-root` Application. This single Application renders
+`clusters/zamorak`, including encrypted manifests through KSOPS. Afterwards,
+Argo CD polls `main` roughly every three to four minutes, syncs changes
+automatically, repairs drift, and prunes resources removed from the cluster root.
 
 ## Status
 
@@ -28,9 +29,9 @@ make argocd-apps CLUSTER=zamorak
 make argocd-status CLUSTER=zamorak ARGOCD_APP=zamorak-root
 ```
 
-Applications with encrypted manifests use the `kustomize-ksops` plugin. A
-render failure or missing age-key Secret leaves the existing workload resources
-unchanged and is reported in the relevant Application status.
+The Application uses the `kustomize-ksops` plugin. A render failure or missing
+age-key Secret leaves existing workload resources unchanged and is reported in
+the `zamorak-root` Application status.
 
 ## UI Access
 

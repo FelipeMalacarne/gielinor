@@ -10,7 +10,9 @@ spec:
   source:
     repoURL: https://github.com/FelipeMalacarne/gielinor.git
     targetRevision: main
-    path: clusters/zamorak/argocd
+    path: clusters/zamorak
+    plugin:
+      name: kustomize-ksops
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
@@ -26,3 +28,4 @@ spec:
         maxDuration: 3m
     syncOptions:
       - PruneLast=true
+      - SkipDryRunOnMissingResource=true

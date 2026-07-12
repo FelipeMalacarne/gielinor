@@ -31,7 +31,6 @@ bootstrap-argocd: ## One-time Argo CD bootstrap for zamorak; AGE_KEY_FILE is req
 	kubectl --context="$(CLUSTER)" -n argocd wait --for=create --timeout=10m deployment/argocd-server
 	kubectl --context="$(CLUSTER)" -n argocd rollout status deployment/argocd-repo-server --timeout=10m
 	kubectl --context="$(CLUSTER)" -n argocd rollout status deployment/argocd-server --timeout=10m
-	kubectl --context="$(CLUSTER)" apply -f clusters/zamorak/argocd/project.yaml
 	kubectl --context="$(CLUSTER)" apply -f clusters/zamorak/argocd/root-application.yaml
 
 argocd-apps: ## List zamorak Argo CD Applications
