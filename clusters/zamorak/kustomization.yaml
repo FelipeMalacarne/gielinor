@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - components/namespaces
+  - ../../infrastructure/argocd/overlays/zamorak
   - ../../infrastructure/cloudflared
   - ../../infrastructure/whoami/overlays/zamorak
   - ../../infrastructure/cnpg/base
