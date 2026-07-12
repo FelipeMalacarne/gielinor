@@ -29,6 +29,7 @@ spec:
       params:
         server.insecure: true
       cm:
+        url: https://argocd.ftm.dev.br
         timeout.reconciliation: 180s
         resource.customizations.health.helm.cattle.io_HelmChart: |
           hs = {}
