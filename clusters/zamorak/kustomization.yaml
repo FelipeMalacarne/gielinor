@@ -4,6 +4,8 @@ kind: Kustomization
 resources:
   - components/namespaces
   - infrastructure/argocd
+  - infrastructure/cert-manager
+  - infrastructure/rabbitmq-operators
   - infrastructure/cloudflared
   - infrastructure/whoami
   - infrastructure/cnpg
@@ -11,6 +13,7 @@ resources:
   - apps/redis
   - apps/vaultwarden
   - apps/n8n
+  - apps/rabbitmq
 
 labels:
   - pairs:
