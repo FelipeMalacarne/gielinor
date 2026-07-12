@@ -40,10 +40,6 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "zamorak_tunnel_confi
         service  = "http://traefik.kube-system.svc.cluster.local:80"
       },
       {
-        hostname = "argocd.${var.zone}"
-        service  = "http://traefik.kube-system.svc.cluster.local:80"
-      },
-      {
         service = "http_status:404"
       }
     ]
@@ -78,37 +74,6 @@ resource "cloudflare_dns_record" "n8n_dns" {
   ttl     = 1
   proxied = true
   comment = "[terraform] zamorak n8n"
-}
-
-resource "cloudflare_dns_record" "argocd_dns" {
-  zone_id = var.zone_id
-  name    = "argocd.${var.zone}"
-  content = "${cloudflare_zero_trust_tunnel_cloudflared.zamorak_tunnel.id}.cfargotunnel.com"
-  type    = "CNAME"
-  ttl     = 1
-  proxied = true
-  comment = "[terraform] zamorak argocd"
-}
-
-resource "cloudflare_zero_trust_access_application" "argocd" {
-  account_id                 = var.account_id
-  name                       = "Zamorak Argo CD"
-  domain                     = "argocd.${var.zone}"
-  type                       = "self_hosted"
-  session_duration           = "12h"
-  http_only_cookie_attribute = true
-  same_site_cookie_attribute = "strict"
-
-  policies = [{
-    name       = "Allow Felipe"
-    precedence = 1
-    decision   = "allow"
-    include = [{
-      email = {
-        email = "felipemalacarne012@gmail.com"
-      }
-    }]
-  }]
 }
 
 resource "cloudflare_zero_trust_tunnel_cloudflared" "saradomin_tunnel" {
