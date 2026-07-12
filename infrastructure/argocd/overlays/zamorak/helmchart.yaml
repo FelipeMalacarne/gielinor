@@ -38,6 +38,11 @@ spec:
           hs.status = "Progressing"
           hs.message = "Waiting for application status"
           return hs
+        resource.customizations.health.argoproj.io_AppProject: |
+          hs = {}
+          hs.status = "Healthy"
+          hs.message = "AppProject is available"
+          return hs
         resource.customizations.health.helm.cattle.io_HelmChart: |
           hs = {}
           if obj.status ~= nil and obj.status.conditions ~= nil then
