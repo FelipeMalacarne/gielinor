@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docling-serve
+  labels:
+    app.kubernetes.io/name: docling-serve
+    app.kubernetes.io/component: document-conversion
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: docling-serve
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: docling-serve
+        app.kubernetes.io/component: document-conversion
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      containers:
+        - name: docling-serve
+          image: ghcr.io/felipemalacarne/docling-serve:cpu-arm64
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 5001
+              protocol: TCP
+          env:
+            - name: DOCLING_SERVE_ENABLE_UI
+              value: "1"
+            - name: UVICORN_WORKERS
+              value: "1"
+            - name: DOCLING_SERVE_MAX_SYNC_WAIT
+              value: "600"
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "3"
+              memory: 6Gi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 4
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 10Gi

@@ -13,6 +13,7 @@ resources:
   - apps/vaultwarden
   - apps/n8n
   - apps/rabbitmq
+  - apps/docling
 
 labels:
   - pairs:

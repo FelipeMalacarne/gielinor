@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: docling-serve
+  labels:
+    app.kubernetes.io/name: docling-serve
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: docling-serve
+  ports:
+    - name: http
+      port: 5001
+      targetPort: http
+      protocol: TCP
