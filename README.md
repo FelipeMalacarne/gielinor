@@ -61,11 +61,15 @@ Deploy `saradomin` manually:
 make apply CLUSTER=saradomin
 ```
 
-`zamorak` is reconciled by Argo CD. Bootstrap or recover Argo CD with:
+`zamorak` is reconciled by Argo CD. Bootstrap or recover Argo CD with the system SOPS age key
+at `~/.config/sops/age/keys.txt` (or `$XDG_CONFIG_HOME/sops/age/keys.txt`):
 
 ```sh
-make bootstrap-argocd CLUSTER=zamorak AGE_KEY_FILE=/path/to/age-key
+make bootstrap-argocd CLUSTER=zamorak
+make bootstrap-argocd CLUSTER=saradomin
 ```
+
+Override the key path when needed with `AGE_KEY_FILE=/path/to/age-key`.
 
 Do not bootstrap Argo CD merely to validate manifests; use `kustomize build`.
 

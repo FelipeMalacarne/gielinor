@@ -3,7 +3,7 @@ ENC_SECRETS  := $(shell find . -name "secrets.yaml" 2>/dev/null)
 
 CLUSTER ?= saradomin
 TF_DIR := terraform
-AGE_KEY_FILE ?=
+AGE_KEY_FILE ?= /var/lib/sops-age/keys.txt
 ARGOCD_APP ?= zamorak-root
 
 .PHONY: apply delete bootstrap-argocd argocd-apps argocd-status encrypt decrypt tf-init tf-plan tf-apply
@@ -18,20 +18,30 @@ delete: ## Delete saradomin resources rendered by kustomize
 	kubectx $(CLUSTER)
 	kustomize build --enable-alpha-plugins --enable-exec "clusters/$(CLUSTER)/" | kubectl delete -f -
 
-bootstrap-argocd: ## One-time Argo CD bootstrap for zamorak; AGE_KEY_FILE is required
-	@test "$(CLUSTER)" = "zamorak" || { echo "bootstrap-argocd supports only CLUSTER=zamorak" >&2; exit 2; }
+bootstrap-argocd: ## Bootstrap Argo CD; AGE_KEY_FILE defaults to the system SOPS age key
 	@test -n "$(AGE_KEY_FILE)" || { echo "AGE_KEY_FILE must point to the SOPS age private key" >&2; exit 2; }
 	@test -r "$(AGE_KEY_FILE)" || { echo "AGE_KEY_FILE is not readable: $(AGE_KEY_FILE)" >&2; exit 2; }
 	kubectl --context="$(CLUSTER)" create namespace argocd --dry-run=client -o yaml | kubectl --context="$(CLUSTER)" apply -f -
 	kubectl --context="$(CLUSTER)" -n argocd create secret generic argocd-ksops-age-key --from-file=keys.txt="$(AGE_KEY_FILE)" --dry-run=client -o yaml | kubectl --context="$(CLUSTER)" apply -f -
-	kustomize build clusters/zamorak/infrastructure/argocd | kubectl --context="$(CLUSTER)" apply -f -
-	kubectl --context="$(CLUSTER)" wait --for=condition=Established --timeout=5m crd/appprojects.argoproj.io
-	kubectl --context="$(CLUSTER)" wait --for=condition=Established --timeout=5m crd/applications.argoproj.io
+	@if test "$(CLUSTER)" = "saradomin"; then \
+		SOPS_AGE_KEY_FILE="$(AGE_KEY_FILE)" kustomize build --enable-alpha-plugins --enable-exec clusters/saradomin/ | kubectl --context="$(CLUSTER)" apply -f -; \
+		kubectl --context="$(CLUSTER)" wait --for=create --timeout=5m crd/applications.argoproj.io; \
+		kubectl --context="$(CLUSTER)" wait --for=condition=Established --timeout=5m crd/applications.argoproj.io; \
+		kubectl --context="$(CLUSTER)" apply -f clusters/saradomin/argocd/root-application.yaml; \
+	elif test "$(CLUSTER)" = "zamorak"; then \
+		kustomize build clusters/zamorak/infrastructure/argocd | kubectl --context="$(CLUSTER)" apply -f -; \
+		kubectl --context="$(CLUSTER)" wait --for=create --timeout=5m crd/appprojects.argoproj.io; \
+		kubectl --context="$(CLUSTER)" wait --for=condition=Established --timeout=5m crd/appprojects.argoproj.io; \
+		kubectl --context="$(CLUSTER)" wait --for=create --timeout=5m crd/applications.argoproj.io; \
+		kubectl --context="$(CLUSTER)" wait --for=condition=Established --timeout=5m crd/applications.argoproj.io; \
+	else \
+		echo "bootstrap-argocd supports only CLUSTER=saradomin or CLUSTER=zamorak" >&2; exit 2; \
+	fi
 	kubectl --context="$(CLUSTER)" -n argocd wait --for=create --timeout=10m deployment/argocd-repo-server
 	kubectl --context="$(CLUSTER)" -n argocd wait --for=create --timeout=10m deployment/argocd-server
 	kubectl --context="$(CLUSTER)" -n argocd rollout status deployment/argocd-repo-server --timeout=10m
 	kubectl --context="$(CLUSTER)" -n argocd rollout status deployment/argocd-server --timeout=10m
-	kubectl --context="$(CLUSTER)" apply -f clusters/zamorak/argocd/root-application.yaml
+	@if test "$(CLUSTER)" = "zamorak"; then kubectl --context="$(CLUSTER)" apply -f clusters/zamorak/argocd/root-application.yaml; fi
 
 argocd-apps: ## List zamorak Argo CD Applications
 	@test "$(CLUSTER)" = "zamorak" || { echo "argocd-apps supports only CLUSTER=zamorak" >&2; exit 2; }

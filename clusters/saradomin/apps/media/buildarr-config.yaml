@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: buildarr-config
+data:
+  buildarr.yml: |
+    ---
+    buildarr:
+      watch_config: true
+      update_days:
+        - monday
+        - tuesday
+        - wednesday
+        - thursday
+        - friday
+        - saturday
+        - sunday
+      update_times:
+        - "03:00"
+
+    sonarr:
+      instances:
+        Sonarr:
+          hostname: sonarr
+          port: 8989
+          protocol: http
+          settings:
+            media_management:
+              rename_episodes: true
+              standard_episode_format: "{Series TitleYear} - S{season:00}E{episode:00} - {Episode CleanTitle} [{Quality Full}]"
+              root_folders:
+                - /data/media/tv
+              delete_unmanaged_root_folders: false
+            download_clients:
+              delete_unmanaged: true
+              definitions:
+                qBittorrent:
+                  type: qbittorrent
+                  host: qbittorrent
+                  port: 8080
+                  category: tv
+
+    radarr:
+      instances:
+        Radarr:
+          hostname: radarr
+          port: 7878
+          protocol: http
+          settings:
+            media_management:
+              rename_movies: true
+              standard_movie_format: "{Movie Title} ({Release Year}) {Quality Full}"
+              movie_folder_format: "{Movie Title} ({Release Year})"
+              root_folders:
+                delete_unmanaged: false
+                definitions:
+                  - /data/media/movies
+            download_clients:
+              delete_unmanaged: true
+              definitions:
+                qBittorrent:
+                  type: qbittorrent
+                  hostname: qbittorrent
+                  port: 8080
+                  category: movies
+
+    prowlarr:
+      instances:
+        Prowlarr:
+          hostname: prowlarr
+          port: 9696
+          protocol: http
+          settings:
+            indexers:
+              proxies:
+                definitions:
+                  FlareSolverr:
+                    type: flaresolverr
+                    host_url: http://flaresolverr:8191/
+                    request_timeout: 60.0
+            apps:
+              applications:
+                definitions:
+                  Radarr:
+                    type: radarr
+                    instance_name: Radarr
+                    prowlarr_url: http://prowlarr:9696
+                    base_url: http://radarr:7878
+                  Sonarr:
+                    type: sonarr
+                    instance_name: Sonarr
+                    prowlarr_url: http://prowlarr:9696
+                    base_url: http://sonarr:8989

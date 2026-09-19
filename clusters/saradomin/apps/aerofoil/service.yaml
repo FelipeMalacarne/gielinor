@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aerofoil
+  labels:
+    app.kubernetes.io/name: aerofoil
+    app.kubernetes.io/part-of: switch-library
+spec:
+  selector:
+    app.kubernetes.io/name: aerofoil
+  ports:
+    - name: http
+      port: 8465
+      targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aerofoil-lan
+  labels:
+    app.kubernetes.io/name: aerofoil
+    app.kubernetes.io/part-of: switch-library
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector:
+    app.kubernetes.io/name: aerofoil
+  ports:
+    - name: http
+      port: 8465
+      targetPort: http
+      nodePort: 30465

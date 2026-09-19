@@ -8,7 +8,10 @@ resources:
   - infrastructure/whoami
   - infrastructure/tailscale
   - infrastructure/cloudflared
+  - infrastructure/argocd
   - apps/openclaw
+  - apps/media
+  - apps/aerofoil
   # - apps/docling
 
 labels:
