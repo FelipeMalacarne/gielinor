@@ -42,6 +42,31 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/hostname: saradomin
+      initContainers:
+        - name: init-switch-storage
+          image: busybox:1.37
+          command:
+            - sh
+            - -c
+            - >-
+              chown 1001:1001 /games /downloads /conversion-tmp
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              cpu: 25m
+              memory: 32Mi
+          volumeMounts:
+            - name: games
+              mountPath: /games
+            - name: downloads
+              mountPath: /downloads
+            - name: conversion-tmp
+              mountPath: /conversion-tmp
       containers:
         - name: aerofoil
           image: luketanti/aerofoil:latest
@@ -103,12 +128,12 @@ spec:
         - name: games
           hostPath:
             path: /data/switch/games
-            type: Directory
+            type: DirectoryOrCreate
         - name: downloads
           hostPath:
             path: /data/switch/downloads
-            type: Directory
+            type: DirectoryOrCreate
         - name: conversion-tmp
           hostPath:
             path: /data/switch/conversion-tmp
-            type: Directory
+            type: DirectoryOrCreate
