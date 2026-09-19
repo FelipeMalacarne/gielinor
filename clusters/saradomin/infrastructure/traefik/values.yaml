@@ -36,6 +36,16 @@ spec:
       - "--api.dashboard=true"
       - "--ping=true"
 
+    extraObjects:
+      - apiVersion: traefik.io/v1alpha1
+        kind: TLSStore
+        metadata:
+          name: default
+          namespace: networking
+        spec:
+          defaultCertificate:
+            secretName: saradomin-wildcard-tls
+
     ports:
       web:
         port: 80

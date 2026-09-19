@@ -28,8 +28,8 @@ data:
           "enabled": true,
           "allowedOrigins": [
             "https://claw.ftm.dev.br",
-            "http://openclaw.saradomin.ftm.dev.br",
-            "http://openclaw.saradomin"
+            "https://openclaw.saradomin.ftm.dev.br",
+            "https://openclaw.saradomin"
           ]
         },
         "trustedProxies": ["10.42.0.0/16"]

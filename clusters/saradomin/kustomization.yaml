@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - namespaces.yaml
   - infrastructure/traefik
+  - infrastructure/cert-manager
   - infrastructure/whoami
   - infrastructure/tailscale
   - infrastructure/cloudflared
