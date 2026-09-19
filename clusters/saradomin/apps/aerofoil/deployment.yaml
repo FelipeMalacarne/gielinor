@@ -67,6 +67,53 @@ spec:
               mountPath: /downloads
             - name: conversion-tmp
               mountPath: /conversion-tmp
+        - name: configure-prowlarr
+          image: luketanti/aerofoil:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -c
+            - |
+              import os
+              import tempfile
+
+              import yaml
+
+              path = "/app/config/settings.yaml"
+              if os.path.exists(path):
+                  with open(path, "r", encoding="utf-8") as settings_file:
+                      settings = yaml.safe_load(settings_file) or {}
+              else:
+                  settings = {}
+
+              downloads = settings.setdefault("downloads", {})
+              prowlarr = downloads.setdefault("prowlarr", {})
+              prowlarr["url"] = os.environ["PROWLARR_URL"]
+              prowlarr["api_key"] = os.environ["PROWLARR_API_KEY"]
+
+              descriptor, temporary_path = tempfile.mkstemp(
+                  dir=os.path.dirname(path),
+                  prefix=".settings-",
+                  suffix=".yaml",
+              )
+              try:
+                  with os.fdopen(descriptor, "w", encoding="utf-8") as settings_file:
+                      yaml.safe_dump(settings, settings_file)
+                  os.replace(temporary_path, path)
+              finally:
+                  if os.path.exists(temporary_path):
+                      os.unlink(temporary_path)
+          env:
+            - name: PROWLARR_URL
+              value: http://prowlarr:9696
+            - name: PROWLARR_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: arr-api-keys
+                  key: PROWLARR_API_KEY
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
       containers:
         - name: aerofoil
           image: luketanti/aerofoil:latest
