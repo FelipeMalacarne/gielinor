@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - helmchart.yaml
+  - lan-service.yaml
 
 patches:
   - path: values.yaml

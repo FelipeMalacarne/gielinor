@@ -8,6 +8,16 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    - host: aerofoil.saradomin.ftm.dev.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: aerofoil
+                port:
+                  name: http
     - host: aerofoil.saradomin
       http:
         paths:

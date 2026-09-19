@@ -114,6 +114,16 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    - host: jellyfin.saradomin.ftm.dev.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jellyfin
+                port:
+                  name: http
     - host: jellyfin.saradomin
       http:
         paths:

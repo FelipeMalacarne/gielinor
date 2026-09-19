@@ -102,6 +102,16 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    - host: sonarr.saradomin.ftm.dev.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sonarr
+                port:
+                  name: http
     - host: sonarr.saradomin
       http:
         paths:

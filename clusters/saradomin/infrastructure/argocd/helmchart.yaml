@@ -29,7 +29,7 @@ spec:
       params:
         server.insecure: true
       cm:
-        url: https://argocd.saradomin
+        url: https://argocd.saradomin.ftm.dev.br
         timeout.reconciliation: 180s
         resource.customizations.health.helm.cattle.io_HelmChart: |
           hs = {}

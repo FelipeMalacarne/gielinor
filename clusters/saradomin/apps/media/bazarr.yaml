@@ -91,6 +91,16 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    - host: bazarr.saradomin.ftm.dev.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bazarr
+                port:
+                  name: http
     - host: bazarr.saradomin
       http:
         paths:

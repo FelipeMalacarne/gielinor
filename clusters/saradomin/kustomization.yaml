@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - namespaces.yaml
   - infrastructure/traefik
-  - infrastructure/coredns
   - infrastructure/whoami
   - infrastructure/tailscale
   - infrastructure/cloudflared

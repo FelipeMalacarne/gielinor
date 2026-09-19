@@ -5,7 +5,7 @@ The media stack is deployed in the `media` namespace:
 - Radarr, Sonarr, Prowlarr, qBittorrent, Bazarr, FlareSolverr
 - Jellyfin and Seerr
 - Buildarr, which reconciles the Arr API configuration from `buildarr-config.yaml`
-- AeroFoil, serving the Switch library at `aerofoil.saradomin`
+- AeroFoil, serving the Switch library at `aerofoil.saradomin.ftm.dev.br`
 
 Buildarr owns the Arr API configuration for root folders, qBittorrent download clients,
 Prowlarr application links, and the FlareSolverr proxy. Indexer definitions, Bazarr,
@@ -29,17 +29,22 @@ into the media library without crossing filesystems.
 
 ## Access
 
-Private services are routed through the existing Tailscale-backed Traefik service:
+Private services use `*.saradomin.ftm.dev.br` as their canonical names. AdGuard Home
+returns the Saradomin LAN address to home clients and the Tailscale-backed
+Traefik address to tailnet clients:
 
-- `radarr.saradomin`, `sonarr.saradomin`, `prowlarr.saradomin`
-- `bazarr.saradomin`, `qbit.saradomin`, `jellyfin.saradomin`
-- `seerr.saradomin`, `aerofoil.saradomin`, `argocd.saradomin`
+- `radarr.saradomin.ftm.dev.br`, `sonarr.saradomin.ftm.dev.br`
+- `prowlarr.saradomin.ftm.dev.br`, `bazarr.saradomin.ftm.dev.br`
+- `qbit.saradomin.ftm.dev.br`, `jellyfin.saradomin.ftm.dev.br`
+- `seerr.saradomin.ftm.dev.br`, `aerofoil.saradomin.ftm.dev.br`
+- `argocd.saradomin.ftm.dev.br`, `openclaw.saradomin.ftm.dev.br`
+
+The previous `*.saradomin` names remain as compatibility aliases.
 
 The AeroFoil workload also has a direct LAN `LoadBalancer` on port `8465`. Reserve a stable
 DHCP lease for the Saradomin node and configure CyberFoil with
 `http://<saradomin-lan-ip>:8465`; this keeps Switch traffic on the LAN and avoids both
-Tailscale and the Cloudflare tunnel. `*.saradomin` is a Tailscale split-DNS zone and is not
-reachable from a stock Nintendo Switch. If the K3s ServiceLB is disabled, use the explicit
+Tailscale and the Cloudflare tunnel. If the K3s ServiceLB is disabled, use the explicit
 NodePort `http://<saradomin-lan-ip>:30465` instead.
 
 The Terraform Cloudflare tunnel exposes Jellyfin at `jellyfin.ftm.dev.br` and Seerr at

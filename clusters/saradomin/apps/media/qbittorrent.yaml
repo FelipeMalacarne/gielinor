@@ -142,6 +142,16 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    - host: qbit.saradomin.ftm.dev.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: qbittorrent
+                port:
+                  name: http
     - host: qbit.saradomin
       http:
         paths:

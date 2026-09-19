@@ -96,6 +96,16 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    - host: prowlarr.saradomin.ftm.dev.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prowlarr
+                port:
+                  name: http
     - host: prowlarr.saradomin
       http:
         paths:

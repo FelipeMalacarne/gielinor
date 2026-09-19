@@ -9,6 +9,16 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    - host: argocd.saradomin.ftm.dev.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80
     - host: argocd.saradomin
       http:
         paths:

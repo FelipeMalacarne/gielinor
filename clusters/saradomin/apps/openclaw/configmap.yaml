@@ -27,7 +27,9 @@ data:
         "controlUi": {
           "enabled": true,
           "allowedOrigins": [
-            "https://claw.ftm.dev.br"
+            "https://claw.ftm.dev.br",
+            "http://openclaw.saradomin.ftm.dev.br",
+            "http://openclaw.saradomin"
           ]
         },
         "trustedProxies": ["10.42.0.0/16"]
