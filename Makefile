@@ -5,6 +5,7 @@ CLUSTER ?= saradomin
 TF_DIR := terraform
 AGE_KEY_FILE ?= /var/lib/sops-age/keys.txt
 ARGOCD_APP ?= zamorak-root
+CERT_MANAGER_RESOURCES := clusters/saradomin/infrastructure/cert-manager/issuers
 
 .PHONY: apply delete bootstrap-argocd argocd-apps argocd-status encrypt decrypt tf-init tf-plan tf-apply
 
@@ -12,6 +13,11 @@ apply: ## Deploy saradomin with kustomize
 	@test "$(CLUSTER)" = "saradomin" || { echo "zamorak is managed by Argo CD; commit to main and wait for reconciliation" >&2; exit 2; }
 	kubectx $(CLUSTER)
 	kustomize build --enable-alpha-plugins --enable-exec "clusters/$(CLUSTER)/" | kubectl apply -f -
+	kubectl --context="$(CLUSTER)" wait --for=create --timeout=10m crd/certificates.cert-manager.io
+	kubectl --context="$(CLUSTER)" wait --for=condition=Established --timeout=10m crd/certificates.cert-manager.io
+	kubectl --context="$(CLUSTER)" wait --for=create --timeout=10m crd/clusterissuers.cert-manager.io
+	kubectl --context="$(CLUSTER)" wait --for=condition=Established --timeout=10m crd/clusterissuers.cert-manager.io
+	kustomize build --enable-alpha-plugins --enable-exec "$(CERT_MANAGER_RESOURCES)" | kubectl --context="$(CLUSTER)" apply -f -
 
 delete: ## Delete saradomin resources rendered by kustomize
 	@test "$(CLUSTER)" = "saradomin" || { echo "zamorak is managed by Argo CD; remove resources from Git and let Argo CD prune them" >&2; exit 2; }

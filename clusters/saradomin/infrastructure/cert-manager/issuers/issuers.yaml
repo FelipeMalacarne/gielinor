@@ -1,0 +1,55 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-cloudflare-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-cloudflare-staging-account-key
+    solvers:
+      - selector:
+          dnsZones:
+            - ftm.dev.br
+        dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-api-token
+              key: api-token
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-cloudflare-production
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-cloudflare-production-account-key
+    solvers:
+      - selector:
+          dnsZones:
+            - ftm.dev.br
+        dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-api-token
+              key: api-token
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: saradomin-wildcard
+  namespace: networking
+spec:
+  secretName: saradomin-wildcard-tls
+  issuerRef:
+    name: letsencrypt-cloudflare-production
+    kind: ClusterIssuer
+  dnsNames:
+    - saradomin.ftm.dev.br
+    - "*.saradomin.ftm.dev.br"
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    rotationPolicy: Always

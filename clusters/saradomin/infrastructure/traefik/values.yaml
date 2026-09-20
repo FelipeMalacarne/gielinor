@@ -24,7 +24,8 @@ spec:
       kubernetesIngress:
         enabled: true
         publishedService:
-          enabled: false
+          enabled: true
+          pathOverride: networking/traefik
 
     logs:
       general:

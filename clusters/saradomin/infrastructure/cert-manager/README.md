@@ -26,12 +26,20 @@ is staged.
 
 ## Certificate flow
 
-The cert-manager Helm release installs its CRDs and these extra objects:
+The cert-manager Helm release installs its CRDs. Once those CRDs are
+established, `make apply CLUSTER=saradomin` applies the dependent resources
+from `issuers/`:
 
 - staging and production Cloudflare `ClusterIssuer` resources;
 - a production `Certificate` that writes `saradomin-wildcard-tls` in the
-  `networking` namespace;
-- Traefik's cluster-wide `default` `TLSStore`, backed by that Secret.
+  `networking` namespace.
+
+Traefik's cluster-wide `default` `TLSStore`, backed by that Secret, remains
+part of the Traefik HelmChart.
+
+The issuers and certificate are intentionally separate from the Helm release:
+Helm cannot render those custom resources in the same install that creates the
+cert-manager CRDs.
 
 The previous `*.saradomin` compatibility names are not covered by a public
 certificate. Use the canonical `*.saradomin.ftm.dev.br` names for trusted HTTPS.
