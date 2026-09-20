@@ -17,6 +17,9 @@ apply: ## Deploy saradomin with kustomize
 	kubectl --context="$(CLUSTER)" wait --for=condition=Established --timeout=10m crd/certificates.cert-manager.io
 	kubectl --context="$(CLUSTER)" wait --for=create --timeout=10m crd/clusterissuers.cert-manager.io
 	kubectl --context="$(CLUSTER)" wait --for=condition=Established --timeout=10m crd/clusterissuers.cert-manager.io
+	kubectl --context="$(CLUSTER)" -n cert-manager rollout status deployment/cert-manager --timeout=10m
+	kubectl --context="$(CLUSTER)" -n cert-manager rollout status deployment/cert-manager-webhook --timeout=10m
+	kubectl --context="$(CLUSTER)" -n cert-manager rollout status deployment/cert-manager-cainjector --timeout=10m
 	kustomize build --enable-alpha-plugins --enable-exec "$(CERT_MANAGER_RESOURCES)" | kubectl --context="$(CLUSTER)" apply -f -
 
 delete: ## Delete saradomin resources rendered by kustomize
