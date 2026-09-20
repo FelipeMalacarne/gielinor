@@ -5,6 +5,7 @@ resources:
   - namespaces.yaml
   - infrastructure/traefik
   - infrastructure/cert-manager
+  - infrastructure/adguard-home-dashboard
   - infrastructure/whoami
   - infrastructure/tailscale
   - infrastructure/cloudflared
