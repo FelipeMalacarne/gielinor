@@ -14,6 +14,8 @@ spec:
       app.kubernetes.io/name: buildarr
   template:
     metadata:
+      annotations:
+        gielinor.ftm.dev.br/secret-revision: "2"
       labels:
         app.kubernetes.io/name: buildarr
         app.kubernetes.io/part-of: arr-stack

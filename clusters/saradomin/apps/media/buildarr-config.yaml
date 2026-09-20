@@ -5,6 +5,9 @@ metadata:
 data:
   buildarr.yml: |
     ---
+    includes:
+      - buildarr-secret.yml
+
     buildarr:
       watch_config: true
       update_days:

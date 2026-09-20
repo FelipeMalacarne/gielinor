@@ -25,6 +25,8 @@ spec:
       app.kubernetes.io/name: radarr
   template:
     metadata:
+      annotations:
+        gielinor.ftm.dev.br/secret-revision: "2"
       labels:
         app.kubernetes.io/name: radarr
         app.kubernetes.io/part-of: arr-stack

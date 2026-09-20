@@ -36,6 +36,8 @@ spec:
       app.kubernetes.io/name: aerofoil
   template:
     metadata:
+      annotations:
+        gielinor.ftm.dev.br/secret-revision: "2"
       labels:
         app.kubernetes.io/name: aerofoil
         app.kubernetes.io/part-of: switch-library

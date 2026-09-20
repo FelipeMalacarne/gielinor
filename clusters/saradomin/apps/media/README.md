@@ -12,9 +12,9 @@ Prowlarr application links, and the FlareSolverr proxy. Indexer definitions, Baz
 Jellyfin, Seerr, and AeroFoil's library metadata still require their application-specific
 initial setup because those projects do not expose a compatible declarative controller here.
 
-The Prowlarr API key must be exactly 32 characters because the Buildarr Prowlarr plugin
-enforces that length. Generate it with `openssl rand -hex 16`; a 64-character
-key from `openssl rand -hex 32` prevents Buildarr from applying the FlareSolverr proxy.
+The Sonarr, Radarr, and Prowlarr API keys must each be exactly 32 characters because their
+Buildarr plugins enforce that length. Generate each key with `openssl rand -hex 16`; a
+64-character key from `openssl rand -hex 32` prevents Buildarr from reconciling the stack.
 
 ## One-time host preparation
 
