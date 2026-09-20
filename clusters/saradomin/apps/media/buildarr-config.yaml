@@ -81,6 +81,8 @@ data:
                     type: flaresolverr
                     host_url: http://flaresolverr:8191/
                     request_timeout: 60.0
+                    tags:
+                      - flaresolverr
             apps:
               applications:
                 definitions:
