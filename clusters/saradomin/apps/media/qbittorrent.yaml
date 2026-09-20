@@ -60,28 +60,25 @@ spec:
               fi;
               config=/config/qBittorrent/qBittorrent.conf;
               temporary="${config}.tmp";
-              whitelist_found=false;
-              whitelist_enabled_found=false;
+              preferences_found=false;
               : > "${temporary}";
               while IFS= read -r line || [ -n "${line}" ]; do
                 case "${line}" in
-                  'WebUI\AuthSubnetWhitelist='*)
+                  '[Preferences]')
+                    printf '%s\n' "${line}" >> "${temporary}";
                     printf '%s\n' 'WebUI\AuthSubnetWhitelist=10.42.0.0/16' >> "${temporary}";
-                    whitelist_found=true
-                    ;;
-                  'WebUI\AuthSubnetWhitelistEnabled='*)
                     printf '%s\n' 'WebUI\AuthSubnetWhitelistEnabled=true' >> "${temporary}";
-                    whitelist_enabled_found=true
+                    preferences_found=true
                     ;;
+                  'WebUI\AuthSubnetWhitelist='*|'WebUI\AuthSubnetWhitelistEnabled='*) ;;
                   *)
                     printf '%s\n' "${line}" >> "${temporary}"
                     ;;
                 esac;
               done < "${config}";
-              if [ "${whitelist_found}" != true ]; then
+              if [ "${preferences_found}" != true ]; then
+                printf '%s\n' '[Preferences]' >> "${temporary}";
                 printf '%s\n' 'WebUI\AuthSubnetWhitelist=10.42.0.0/16' >> "${temporary}";
-              fi;
-              if [ "${whitelist_enabled_found}" != true ]; then
                 printf '%s\n' 'WebUI\AuthSubnetWhitelistEnabled=true' >> "${temporary}";
               fi;
               mv "${temporary}" "${config}";
