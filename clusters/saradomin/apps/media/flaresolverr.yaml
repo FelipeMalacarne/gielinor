@@ -20,11 +20,11 @@ spec:
         kubernetes.io/hostname: saradomin
       containers:
         - name: flaresolverr
-          image: ghcr.io/flaresolverr/flaresolverr:latest
+          image: ghcr.io/thephaseless/byparr:3.0.4
           imagePullPolicy: IfNotPresent
           env:
             - name: LOG_LEVEL
-              value: info
+              value: INFO
             - name: TZ
               value: America/Sao_Paulo
           ports:
@@ -32,11 +32,38 @@ spec:
               containerPort: 8191
           resources:
             requests:
-              cpu: 100m
-              memory: 256Mi
+              cpu: 250m
+              memory: 512Mi
             limits:
-              cpu: 500m
-              memory: 768Mi
+              cpu: "2"
+              memory: 2Gi
+          startupProbe:
+            httpGet:
+              path: /docs
+              port: http
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /docs
+              port: http
+            timeoutSeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /docs
+              port: http
+            timeoutSeconds: 5
+            periodSeconds: 30
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
 ---
 apiVersion: v1
 kind: Service
