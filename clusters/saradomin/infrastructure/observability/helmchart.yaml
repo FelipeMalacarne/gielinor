@@ -43,9 +43,11 @@ spec:
       sidecar:
         dashboards:
           initDashboards: true
+          watchMethod: LIST
           skipReload: true
         datasources:
           initDatasources: true
+          watchMethod: LIST
           skipReload: true
       adminPassword: changeme # replace before deploying
       resources:
