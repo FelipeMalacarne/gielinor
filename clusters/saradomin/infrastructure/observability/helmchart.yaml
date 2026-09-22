@@ -12,6 +12,8 @@ spec:
   timeout: 15m
   valuesContent: |-
     grafana:
+      podAnnotations:
+        gielinor.felipe/observability-config: loki-v2
       service:
         type: ClusterIP
       ingress:
@@ -38,6 +40,13 @@ spec:
         enabled: true
         storageClassName: local-path
         size: 5Gi
+      sidecar:
+        dashboards:
+          initDashboards: true
+          skipReload: true
+        datasources:
+          initDatasources: true
+          skipReload: true
       adminPassword: changeme # replace before deploying
       resources:
         requests:
