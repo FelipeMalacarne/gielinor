@@ -44,6 +44,8 @@ spec:
               value: "1001"
             - name: TZ
               value: America/Sao_Paulo
+            - name: SONARR__SERVER__ALLOWEDHOSTS
+              value: sonarr.saradomin.ftm.dev.br,sonarr.saradomin,sonarr,sonarr.media.svc,sonarr.media.svc.cluster.local
             - name: SONARR__AUTH__APIKEY
               valueFrom:
                 secretKeyRef:

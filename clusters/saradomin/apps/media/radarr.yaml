@@ -44,6 +44,8 @@ spec:
               value: "1001"
             - name: TZ
               value: America/Sao_Paulo
+            - name: RADARR__SERVER__ALLOWEDHOSTS
+              value: radarr.saradomin.ftm.dev.br,radarr.saradomin,radarr,radarr.media.svc,radarr.media.svc.cluster.local
             - name: RADARR__AUTH__APIKEY
               valueFrom:
                 secretKeyRef:
