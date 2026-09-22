@@ -13,7 +13,7 @@ spec:
   valuesContent: |-
     grafana:
       podAnnotations:
-        gielinor.felipe/observability-config: loki-v2
+        gielinor.felipe/observability-config: loki-v3-level-filter
       service:
         type: ClusterIP
       ingress:
