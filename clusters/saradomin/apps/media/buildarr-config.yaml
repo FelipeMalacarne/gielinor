@@ -74,6 +74,9 @@ data:
           port: 9696
           protocol: http
           settings:
+            download_clients:
+              delete_unmanaged: true
+              definitions: {}
             indexers:
               proxies:
                 definitions:
