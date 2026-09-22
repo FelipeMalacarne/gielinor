@@ -1,0 +1,235 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubernetes-log-volume-dashboard
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  kubernetes-log-volume.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "graphTooltip": 1,
+      "links": [],
+      "panels": [
+        {
+          "datasource": { "type": "loki", "uid": "${datasource}" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "logs / second",
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "fillOpacity": 15,
+                "gradientMode": "none",
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": { "group": "A", "mode": "none" },
+                "thresholdsStyle": { "mode": "off" }
+              },
+              "unit": "logs/sec"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 9, "w": 24, "x": 0, "y": 0 },
+          "id": 1,
+          "options": {
+            "legend": {
+              "calcs": ["mean", "max", "lastNotNull"],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": { "mode": "multi", "sort": "none" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "loki", "uid": "${datasource}" },
+              "expr": "sum(rate({cluster=~\"$cluster\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} [$__rate_interval]))",
+              "legendFormat": "all logs",
+              "refId": "A"
+            },
+            {
+              "datasource": { "type": "loki", "uid": "${datasource}" },
+              "expr": "sum(rate({cluster=~\"$cluster\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} |~ \"(?i)error|fatal|panic\" [$__rate_interval]))",
+              "legendFormat": "errors",
+              "refId": "B"
+            }
+          ],
+          "title": "Log Rate",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "${datasource}" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "thresholds" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "orange", "value": 1 },
+                  { "color": "red", "value": 10 }
+                ]
+              },
+              "unit": "logs/sec"
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 5, "w": 8, "x": 0, "y": 9 },
+          "id": 2,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "area",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "loki", "uid": "${datasource}" },
+              "expr": "sum(rate({cluster=~\"$cluster\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} |~ \"(?i)error|fatal|panic\" [$__rate_interval]))",
+              "refId": "A"
+            }
+          ],
+          "title": "Current Error Rate",
+          "type": "stat"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "${datasource}" },
+          "fieldConfig": {
+            "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 16, "x": 8, "y": 9 },
+          "id": 3,
+          "options": {
+            "displayMode": "gradient",
+            "legend": { "displayMode": "list", "placement": "bottom", "showLegend": false },
+            "orientation": "horizontal",
+            "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+            "showUnfilled": true
+          },
+          "targets": [
+            {
+              "datasource": { "type": "loki", "uid": "${datasource}" },
+              "expr": "topk(10, sum by (namespace) (count_over_time({cluster=~\"$cluster\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} [$__range])))",
+              "instant": true,
+              "legendFormat": "{{namespace}}",
+              "refId": "A"
+            }
+          ],
+          "title": "Top Namespaces by Log Count",
+          "type": "bargauge"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "${datasource}" },
+          "fieldConfig": {
+            "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 17 },
+          "id": 4,
+          "options": {
+            "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+            "showHeader": true,
+            "sortBy": [{ "desc": true, "displayName": "Value" }]
+          },
+          "targets": [
+            {
+              "datasource": { "type": "loki", "uid": "${datasource}" },
+              "expr": "topk(20, sum by (namespace, pod, container) (count_over_time({cluster=~\"$cluster\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} [$__range])))",
+              "instant": true,
+              "legendFormat": "{{namespace}} / {{pod}} / {{container}}",
+              "refId": "A"
+            }
+          ],
+          "title": "Noisiest Containers",
+          "type": "table"
+        }
+      ],
+      "refresh": "1m",
+      "schemaVersion": 39,
+      "tags": ["logs", "loki", "kubernetes", "capacity"],
+      "templating": {
+        "list": [
+          {
+            "current": { "text": "Loki", "value": "loki" },
+            "hide": 0,
+            "name": "datasource",
+            "options": [],
+            "query": "loki",
+            "refresh": 1,
+            "type": "datasource"
+          },
+          {
+            "current": { "text": "saradomin", "value": "saradomin" },
+            "datasource": { "type": "loki", "uid": "${datasource}" },
+            "definition": "label_values(cluster)",
+            "includeAll": false,
+            "multi": false,
+            "name": "cluster",
+            "options": [],
+            "query": "label_values(cluster)",
+            "refresh": 1,
+            "type": "query"
+          },
+          {
+            "current": { "text": "All", "value": ["$__all"] },
+            "allValue": ".*",
+            "datasource": { "type": "loki", "uid": "${datasource}" },
+            "definition": "label_values(namespace)",
+            "includeAll": true,
+            "multi": true,
+            "name": "namespace",
+            "options": [],
+            "query": "label_values(namespace)",
+            "refresh": 2,
+            "type": "query"
+          },
+          {
+            "current": { "text": "All", "value": ["$__all"] },
+            "allValue": ".*",
+            "datasource": { "type": "loki", "uid": "${datasource}" },
+            "definition": "label_values(pod, namespace=~\"$namespace\")",
+            "includeAll": true,
+            "multi": true,
+            "name": "pod",
+            "options": [],
+            "query": "label_values(pod, namespace=~\"$namespace\")",
+            "refresh": 2,
+            "type": "query"
+          },
+          {
+            "current": { "text": "All", "value": ["$__all"] },
+            "allValue": ".*",
+            "datasource": { "type": "loki", "uid": "${datasource}" },
+            "definition": "label_values(container, namespace=~\"$namespace\", pod=~\"$pod\")",
+            "includeAll": true,
+            "multi": true,
+            "name": "container",
+            "options": [],
+            "query": "label_values(container, namespace=~\"$namespace\", pod=~\"$pod\")",
+            "refresh": 2,
+            "type": "query"
+          }
+        ]
+      },
+      "time": { "from": "now-24h", "to": "now" },
+      "timezone": "browser",
+      "title": "Kubernetes Log Volume",
+      "uid": "kubernetes-log-volume",
+      "version": 1
+    }

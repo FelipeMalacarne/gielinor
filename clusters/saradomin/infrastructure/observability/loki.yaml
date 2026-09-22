@@ -1,0 +1,76 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: loki
+  namespace: kube-system
+spec:
+  repo: https://grafana-community.github.io/helm-charts
+  chart: loki
+  version: 18.13.5
+  targetNamespace: observability
+  createNamespace: false
+  timeout: 15m
+  valuesContent: |-
+    deploymentMode: Monolithic
+
+    loki:
+      auth_enabled: false
+      commonConfig:
+        replication_factor: 1
+      schemaConfig:
+        configs:
+          - from: "2024-04-01"
+            store: tsdb
+            object_store: filesystem
+            schema: v13
+            index:
+              prefix: loki_index_
+              period: 24h
+      storage:
+        type: filesystem
+      limits_config:
+        retention_period: 168h
+      compactor:
+        retention_enabled: true
+        delete_request_store: filesystem
+
+    singleBinary:
+      replicas: 1
+      persistence:
+        enabled: true
+        storageClass: local-path
+        size: 20Gi
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+
+    gateway:
+      replicas: 1
+      verboseLogging: false
+      resources:
+        requests:
+          cpu: 25m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 128Mi
+
+    chunksCache:
+      enabled: false
+    resultsCache:
+      enabled: false
+    lokiCanary:
+      enabled: false
+    test:
+      enabled: false
+
+    backend:
+      replicas: 0
+    read:
+      replicas: 0
+    write:
+      replicas: 0

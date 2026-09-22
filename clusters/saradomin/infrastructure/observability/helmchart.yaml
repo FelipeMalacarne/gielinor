@@ -23,6 +23,17 @@ spec:
         hosts:
           - grafana.saradomin.ftm.dev.br
           - grafana.saradomin
+      additionalDataSources:
+        - name: Loki
+          uid: loki
+          type: loki
+          access: proxy
+          url: http://loki-gateway.observability.svc.cluster.local
+          isDefault: false
+          editable: false
+          jsonData:
+            maxLines: 1000
+            timeout: 60
       persistence:
         enabled: true
         storageClassName: local-path
