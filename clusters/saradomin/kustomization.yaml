@@ -14,6 +14,7 @@ resources:
   - apps/openclaw
   - apps/media
   - apps/aerofoil
+  - apps/filebrowser
   # - apps/docling
 
 labels:

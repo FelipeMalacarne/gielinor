@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebrowser-config
+data:
+  config.yaml: |
+    server:
+      port: 80
+      database: /home/filebrowser/data/database.db
+      cacheDir: /home/filebrowser/data/tmp
+      externalUrl: https://files.saradomin.ftm.dev.br
+      sources:
+        - name: Saradomin Data
+          path: /srv
+          config:
+            defaultEnabled: true
+            private: true
+
+    auth:
+      tokenExpirationHours: 168
+      methods:
+        password:
+          enabled: true
+          signup: false
+          minLength: 16
+      adminUsername: admin
+
+    frontend:
+      name: Saradomin Files
+      description: Private file management for Saradomin

@@ -1,0 +1,10 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: filebrowser-upload
+  labels:
+    app.kubernetes.io/name: filebrowser
+    app.kubernetes.io/part-of: file-management
+spec:
+  buffering:
+    maxRequestBodyBytes: 0
