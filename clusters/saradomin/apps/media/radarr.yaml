@@ -63,6 +63,9 @@ spec:
             httpGet:
               path: /ping
               port: http
+              httpHeaders:
+                - name: Host
+                  value: radarr.saradomin.ftm.dev.br
             initialDelaySeconds: 45
             periodSeconds: 10
           volumeMounts:
