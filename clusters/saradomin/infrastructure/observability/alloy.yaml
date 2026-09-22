@@ -89,6 +89,16 @@ spec:
           }
 
           loki.process "pod_logs" {
+            stage.regex {
+              expression = `(?i)(^|[\s"{\[])(level|severity|levelname)?["']?\s*[=:]?\s*["']?(?P<level>trace|debug|info|notice|warn(ing)?|error|err|fatal|panic|critical)\b`
+            }
+
+            stage.labels {
+              values = {
+                level = "",
+              }
+            }
+
             stage.static_labels {
               values = {
                 cluster = "saradomin",

@@ -30,7 +30,7 @@ data:
           "targets": [
             {
               "datasource": { "type": "loki", "uid": "${datasource}" },
-              "expr": "{cluster=~\"$cluster\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"}",
+              "expr": "{cluster=~\"$cluster\", level=~\"$level\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"}",
               "refId": "A"
             }
           ],
@@ -71,7 +71,7 @@ data:
           "targets": [
             {
               "datasource": { "type": "loki", "uid": "${datasource}" },
-              "expr": "sum(count_over_time({cluster=~\"$cluster\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} |~ \"(?i)error|fatal|panic\" [$__interval]))",
+              "expr": "sum(count_over_time({cluster=~\"$cluster\", level=~\"$level\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} |~ \"(?i)error|fatal|panic\" [$__interval]))",
               "refId": "A"
             }
           ],
@@ -117,13 +117,13 @@ data:
           "targets": [
             {
               "datasource": { "type": "loki", "uid": "${datasource}" },
-              "expr": "sum(count_over_time({cluster=~\"$cluster\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} [$__interval]))",
+              "expr": "sum(count_over_time({cluster=~\"$cluster\", level=~\"$level\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} [$__interval]))",
               "legendFormat": "all logs",
               "refId": "A"
             },
             {
               "datasource": { "type": "loki", "uid": "${datasource}" },
-              "expr": "sum(count_over_time({cluster=~\"$cluster\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} |~ \"(?i)error|fatal|panic\" [$__interval]))",
+              "expr": "sum(count_over_time({cluster=~\"$cluster\", level=~\"$level\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} |~ \"(?i)error|fatal|panic\" [$__interval]))",
               "legendFormat": "errors",
               "refId": "B"
             }
@@ -156,6 +156,19 @@ data:
             "options": [],
             "query": "label_values(cluster)",
             "refresh": 1,
+            "type": "query"
+          },
+          {
+            "current": { "text": "All", "value": ["$__all"] },
+            "allValue": ".*",
+            "datasource": { "type": "loki", "uid": "${datasource}" },
+            "definition": "label_values(level)",
+            "includeAll": true,
+            "multi": true,
+            "name": "level",
+            "options": [],
+            "query": "label_values(level)",
+            "refresh": 2,
             "type": "query"
           },
           {
