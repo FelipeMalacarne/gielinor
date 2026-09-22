@@ -11,7 +11,7 @@ resources:
   - infrastructure/tailscale
   - infrastructure/cloudflared
   - infrastructure/argocd
-  - apps/openclaw
+  # - apps/openclaw
   - apps/media
   - apps/aerofoil
   - apps/filebrowser
