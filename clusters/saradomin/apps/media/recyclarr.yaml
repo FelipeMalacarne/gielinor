@@ -348,14 +348,16 @@ data:
             (candidate for candidate in candidates if service["name"] in candidate.get("hostname", "")),
             candidates[0],
         )
-        server["activeProfileId"] = profile_id
-        server["activeProfileName"] = service["target"]
-        server["isDefault"] = True
+        server_id = server["id"]
+        payload = {key: value for key, value in server.items() if key != "id"}
+        payload["activeProfileId"] = profile_id
+        payload["activeProfileName"] = service["target"]
+        payload["isDefault"] = True
         request_json(
-            f"{endpoint}/{server['id']}",
+            f"{endpoint}/{server_id}",
             seerr_api_key,
             method="PUT",
-            payload=server,
+            payload=payload,
         )
         print(f"seerr: {service['name']} now defaults to {service['target']}")
 
