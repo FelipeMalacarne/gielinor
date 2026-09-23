@@ -204,6 +204,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: buildarr
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: aerofoil
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: networking
