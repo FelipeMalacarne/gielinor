@@ -63,14 +63,14 @@ spec:
               cpu: 25m
               memory: 32Mi
           volumeMounts:
+            - name: data-host
+              mountPath: /data
             - name: games
               mountPath: /games
-            - name: downloads
-              mountPath: /data/downloads/complete
             - name: conversion-tmp
               mountPath: /conversion-tmp
         - name: configure-prowlarr
-          image: luketanti/aerofoil:latest
+          image: luketanti/aerofoil:sha-253c827
           imagePullPolicy: IfNotPresent
           command:
             - python
@@ -118,7 +118,7 @@ spec:
               mountPath: /app/config
       containers:
         - name: aerofoil
-          image: luketanti/aerofoil:latest
+          image: luketanti/aerofoil:sha-253c827
           imagePullPolicy: IfNotPresent
           env:
             - name: PUID
@@ -161,10 +161,10 @@ spec:
               mountPath: /app/config
             - name: data
               mountPath: /app/data
+            - name: data-host
+              mountPath: /data
             - name: games
               mountPath: /games
-            - name: downloads
-              mountPath: /data/downloads/complete
             - name: conversion-tmp
               mountPath: /app/conversion-tmp
       volumes:
@@ -178,10 +178,10 @@ spec:
           hostPath:
             path: /data/switch/games
             type: DirectoryOrCreate
-        - name: downloads
+        - name: data-host
           hostPath:
-            path: /data/downloads/complete
-            type: DirectoryOrCreate
+            path: /data
+            type: Directory
         - name: conversion-tmp
           hostPath:
             path: /data/switch/conversion-tmp
