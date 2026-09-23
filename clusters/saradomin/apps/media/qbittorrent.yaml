@@ -201,6 +201,9 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: radarr
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: buildarr
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: networking
