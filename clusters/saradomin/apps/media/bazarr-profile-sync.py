@@ -16,6 +16,7 @@ BAZARR_URL = os.environ.get("BAZARR_URL", "http://127.0.0.1:6767")
 CONFIG_PATH = Path("/config/config/config.yaml")
 DESIRED_PATH = Path("/profile-sync/bazarr-profile.json")
 POLL_SECONDS = int(os.environ.get("POLL_SECONDS", "300"))
+RETRY_SECONDS = int(os.environ.get("RETRY_SECONDS", "30"))
 
 
 def read_api_key() -> str:
@@ -113,6 +114,11 @@ def assign_unprofiled(path: str, id_field: str, response_field: str, profile_id:
             method="POST",
             form=[(id_field, str(media_id)), ("profileid", str(profile_id))],
         )
+        api_request(
+            "/api/movies" if id_field == "radarrid" else "/api/series",
+            method="PATCH",
+            form=[(id_field, str(media_id)), ("action", "search-missing")],
+        )
         print(f"profile-sync: assigned profile {profile_id} to {id_field}={media_id}", flush=True)
 
 
@@ -122,7 +128,9 @@ def main() -> None:
             reconcile()
         except (HTTPError, URLError, OSError, RuntimeError, ValueError, KeyError) as error:
             status = getattr(error, "code", "error")
-            print(f"profile-sync: waiting/retry ({status})", flush=True)
+            print(f"profile-sync: waiting/retry ({type(error).__name__}: {status})", flush=True)
+            time.sleep(RETRY_SECONDS)
+            continue
         time.sleep(POLL_SECONDS)
 
 
