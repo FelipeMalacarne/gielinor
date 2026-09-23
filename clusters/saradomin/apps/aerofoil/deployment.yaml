@@ -65,8 +65,6 @@ spec:
           volumeMounts:
             - name: data-host
               mountPath: /data
-            - name: games
-              mountPath: /games
             - name: conversion-tmp
               mountPath: /conversion-tmp
         - name: configure-prowlarr
@@ -163,8 +161,6 @@ spec:
               mountPath: /app/data
             - name: data-host
               mountPath: /data
-            - name: games
-              mountPath: /games
             - name: conversion-tmp
               mountPath: /app/conversion-tmp
       volumes:
@@ -174,10 +170,6 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: aerofoil-data
-        - name: games
-          hostPath:
-            path: /data/switch/games
-            type: DirectoryOrCreate
         - name: data-host
           hostPath:
             path: /data
