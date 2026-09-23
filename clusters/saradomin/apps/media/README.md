@@ -52,8 +52,10 @@ port directly on the Saradomin node. Configure the Deco router to forward TCP an
 `52457` to `10.10.0.10:52457`; the Kubernetes change cannot create this router rule.
 
 The qBittorrent Ingress is protected by Traefik BasicAuth. Its username and generated
-password are stored only in the SOPS-encrypted `qbittorrent-webui-auth` Secret. They can be
-retrieved locally by decrypting `secrets.yaml`; do not commit `secrets.dec.yaml`. A NetworkPolicy
+password are stored only in the SOPS-encrypted `qbittorrent-webui-credentials` Secret; the
+separate `qbittorrent-webui-auth` Secret contains only the htpasswd entry required by Traefik.
+The credentials can be retrieved locally by decrypting `secrets.yaml`; do not commit
+`secrets.dec.yaml`. A NetworkPolicy
 limits the unauthenticated internal Web UI port to Sonarr, Radarr, and Traefik while leaving only
 the TCP/UDP peer port open to arbitrary peers.
 
