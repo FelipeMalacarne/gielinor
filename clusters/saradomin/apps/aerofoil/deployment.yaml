@@ -70,7 +70,7 @@ spec:
             - name: conversion-tmp
               mountPath: /conversion-tmp
         - name: configure-prowlarr
-          image: luketanti/aerofoil:sha-253c827
+          image: luketanti/aerofoil:sha-5235c59
           imagePullPolicy: IfNotPresent
           command:
             - python
@@ -118,7 +118,7 @@ spec:
               mountPath: /app/config
       containers:
         - name: aerofoil
-          image: luketanti/aerofoil:sha-253c827
+          image: luketanti/aerofoil:sha-5235c59
           imagePullPolicy: IfNotPresent
           env:
             - name: PUID
