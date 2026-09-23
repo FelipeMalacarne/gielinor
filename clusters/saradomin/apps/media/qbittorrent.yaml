@@ -12,6 +12,8 @@ data:
     WebUI\Address=*
     WebUI\Port=8080
     WebUI\AuthenticationEnabled=false
+    WebUI\AuthSubnetWhitelist=10.42.0.0/16
+    WebUI\AuthSubnetWhitelistEnabled=true
     Downloads\SavePath=/data/downloads/complete/
     Downloads\TempPath=/data/downloads/incomplete/
     Downloads\TempPathEnabled=true
@@ -63,6 +65,7 @@ spec:
               config=/config/qBittorrent/qBittorrent.conf;
               temporary="${config}.tmp";
               bittorrent_found=false;
+              preferences_found=false;
               : > "${temporary}";
               while IFS= read -r line || [ -n "${line}" ]; do
                 case "${line}" in
@@ -71,6 +74,12 @@ spec:
                     printf '%s\n' 'Session\Port=52457' >> "${temporary}";
                     printf '%s\n' 'Session\UseRandomPort=false' >> "${temporary}";
                     bittorrent_found=true
+                    ;;
+                  '[Preferences]')
+                    printf '%s\n' "${line}" >> "${temporary}";
+                    printf '%s\n' 'WebUI\AuthSubnetWhitelist=10.42.0.0/16' >> "${temporary}";
+                    printf '%s\n' 'WebUI\AuthSubnetWhitelistEnabled=true' >> "${temporary}";
+                    preferences_found=true
                     ;;
                   'Session\Port='*|'Session\UseRandomPort='*|'WebUI\AuthSubnetWhitelist='*|'WebUI\AuthSubnetWhitelistEnabled='*) ;;
                   *)
@@ -82,6 +91,11 @@ spec:
                 printf '%s\n' '[BitTorrent]' >> "${temporary}";
                 printf '%s\n' 'Session\Port=52457' >> "${temporary}";
                 printf '%s\n' 'Session\UseRandomPort=false' >> "${temporary}";
+              fi;
+              if [ "${preferences_found}" != true ]; then
+                printf '%s\n' '[Preferences]' >> "${temporary}";
+                printf '%s\n' 'WebUI\AuthSubnetWhitelist=10.42.0.0/16' >> "${temporary}";
+                printf '%s\n' 'WebUI\AuthSubnetWhitelistEnabled=true' >> "${temporary}";
               fi;
               mv "${temporary}" "${config}";
           securityContext:
