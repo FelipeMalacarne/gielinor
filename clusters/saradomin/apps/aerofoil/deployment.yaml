@@ -51,7 +51,7 @@ spec:
             - sh
             - -c
             - >-
-              chown 1001:1001 /games /data/downloads/complete /conversion-tmp
+              chown 1001:1001 /data/switch/games /data/downloads/complete /conversion-tmp
           securityContext:
             runAsUser: 0
             runAsGroup: 0
