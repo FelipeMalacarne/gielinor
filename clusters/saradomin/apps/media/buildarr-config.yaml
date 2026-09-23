@@ -29,6 +29,7 @@ data:
           protocol: http
           settings:
             media_management:
+              use_hardlinks: true
               rename_episodes: true
               replace_illegal_characters: true
               standard_episode_format: "{Series CleanTitleWithoutYear} {(Series Year)} - S{season:00}E{episode:00} - {Episode CleanTitle:90} {[Quality Full]}{[MediaInfo VideoDynamicRangeType]}{-Release Group}"
@@ -57,6 +58,7 @@ data:
           protocol: http
           settings:
             media_management:
+              use_hardlinks: true
               rename_movies: true
               replace_illegal_characters: true
               colon_replacement: space-dash-space
