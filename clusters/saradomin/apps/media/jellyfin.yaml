@@ -1,4 +1,114 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jellyfin-qsv-config
+data:
+  configure-qsv.py: |
+    from pathlib import Path
+    import shutil
+    import xml.etree.ElementTree as ET
+
+    config = Path("/config/config/encoding.xml")
+    seed = Path("/seed/encoding.xml")
+    config.parent.mkdir(parents=True, exist_ok=True)
+    if not config.exists():
+        shutil.copyfile(seed, config)
+
+    tree = ET.parse(config)
+    root = tree.getroot()
+    values = {
+        "HardwareAccelerationType": "qsv",
+        "QsvDevice": "/dev/dri/renderD128",
+        "EnableTonemapping": "true",
+        "EnableVppTonemapping": "true",
+        "EnableHardwareEncoding": "true",
+    }
+    for tag, value in values.items():
+        node = root.find(tag)
+        if node is None:
+            raise RuntimeError(f"Jellyfin encoding config is missing {tag}")
+        node.text = value
+
+    codecs = root.find("HardwareDecodingCodecs")
+    if codecs is None:
+        raise RuntimeError("Jellyfin encoding config is missing HardwareDecodingCodecs")
+    codecs.clear()
+    expected_codecs = ["h264", "hevc", "mpeg2video", "vc1", "vp8", "vp9", "av1"]
+    for codec in expected_codecs:
+        ET.SubElement(codecs, "string").text = codec
+
+    ET.indent(tree, space="  ")
+    temporary = config.with_suffix(".xml.tmp")
+    tree.write(temporary, encoding="utf-8", xml_declaration=True)
+    check_root = ET.parse(temporary).getroot()
+    for tag, value in values.items():
+        if check_root.findtext(tag) != value:
+            raise RuntimeError(f"Jellyfin QSV validation failed for {tag}")
+    actual_codecs = [node.text for node in check_root.findall("./HardwareDecodingCodecs/string")]
+    if actual_codecs != expected_codecs:
+        raise RuntimeError("Jellyfin QSV codec validation failed")
+    temporary.replace(config)
+  encoding.xml: |
+    <?xml version='1.0' encoding='utf-8'?>
+    <EncodingOptions>
+      <EncodingThreadCount>-1</EncodingThreadCount>
+      <EnableFallbackFont>false</EnableFallbackFont>
+      <EnableAudioVbr>false</EnableAudioVbr>
+      <DownMixAudioBoost>2</DownMixAudioBoost>
+      <DownMixStereoAlgorithm>None</DownMixStereoAlgorithm>
+      <MaxMuxingQueueSize>2048</MaxMuxingQueueSize>
+      <EnableThrottling>false</EnableThrottling>
+      <ThrottleDelaySeconds>180</ThrottleDelaySeconds>
+      <EnableSegmentDeletion>false</EnableSegmentDeletion>
+      <SegmentKeepSeconds>720</SegmentKeepSeconds>
+      <HardwareAccelerationType>qsv</HardwareAccelerationType>
+      <EncoderAppPathDisplay>/usr/lib/jellyfin-ffmpeg/ffmpeg</EncoderAppPathDisplay>
+      <VaapiDevice>/dev/dri/renderD128</VaapiDevice>
+      <QsvDevice>/dev/dri/renderD128</QsvDevice>
+      <EnableTonemapping>true</EnableTonemapping>
+      <EnableVppTonemapping>true</EnableVppTonemapping>
+      <EnableVideoToolboxTonemapping>false</EnableVideoToolboxTonemapping>
+      <TonemappingAlgorithm>bt2390</TonemappingAlgorithm>
+      <TonemappingMode>auto</TonemappingMode>
+      <TonemappingRange>auto</TonemappingRange>
+      <TonemappingDesat>0</TonemappingDesat>
+      <TonemappingPeak>100</TonemappingPeak>
+      <TonemappingParam>0</TonemappingParam>
+      <VppTonemappingBrightness>16</VppTonemappingBrightness>
+      <VppTonemappingContrast>1</VppTonemappingContrast>
+      <H264Crf>23</H264Crf>
+      <H265Crf>28</H265Crf>
+      <EncoderPreset>auto</EncoderPreset>
+      <DeinterlaceDoubleRate>false</DeinterlaceDoubleRate>
+      <DeinterlaceMethod>yadif</DeinterlaceMethod>
+      <EnableDecodingColorDepth10Hevc>true</EnableDecodingColorDepth10Hevc>
+      <EnableDecodingColorDepth10Vp9>true</EnableDecodingColorDepth10Vp9>
+      <EnableDecodingColorDepth10HevcRext>false</EnableDecodingColorDepth10HevcRext>
+      <EnableDecodingColorDepth12HevcRext>false</EnableDecodingColorDepth12HevcRext>
+      <EnableEnhancedNvdecDecoder>true</EnableEnhancedNvdecDecoder>
+      <PreferSystemNativeHwDecoder>true</PreferSystemNativeHwDecoder>
+      <EnableIntelLowPowerH264HwEncoder>false</EnableIntelLowPowerH264HwEncoder>
+      <EnableIntelLowPowerHevcHwEncoder>false</EnableIntelLowPowerHevcHwEncoder>
+      <EnableHardwareEncoding>true</EnableHardwareEncoding>
+      <AllowHevcEncoding>false</AllowHevcEncoding>
+      <AllowAv1Encoding>false</AllowAv1Encoding>
+      <EnableSubtitleExtraction>true</EnableSubtitleExtraction>
+      <SubtitleExtractionTimeoutMinutes>30</SubtitleExtractionTimeoutMinutes>
+      <HardwareDecodingCodecs>
+        <string>h264</string>
+        <string>hevc</string>
+        <string>mpeg2video</string>
+        <string>vc1</string>
+        <string>vp8</string>
+        <string>vp9</string>
+        <string>av1</string>
+      </HardwareDecodingCodecs>
+      <AllowOnDemandMetadataBasedKeyframeExtractionForExtensions>
+        <string>mkv</string>
+      </AllowOnDemandMetadataBasedKeyframeExtractionForExtensions>
+    </EncodingOptions>
+---
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: jellyfin-config
@@ -31,9 +141,38 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/hostname: saradomin
+      securityContext:
+        supplementalGroups:
+          - 303
+      initContainers:
+        - name: configure-qsv
+          image: python:3.13-alpine@sha256:79e7a9b9ff1cbceff819f856fb374477792a5967759d94df266de7b7b4120e6f
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - /seed/configure-qsv.py
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: qsv-config
+              mountPath: /seed
+              readOnly: true
       containers:
         - name: jellyfin
-          image: jellyfin/jellyfin:latest
+          image: jellyfin/jellyfin:latest@sha256:78d3ea1207d1322471fcac39a614f004f2ccf7e878f95ab2977d752f07e4dd7e
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ
@@ -48,26 +187,55 @@ spec:
             limits:
               cpu: 2000m
               memory: 2Gi
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 60
           readinessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 60
-            periodSeconds: 15
+            timeoutSeconds: 5
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            timeoutSeconds: 5
+            periodSeconds: 30
+            failureThreshold: 3
           volumeMounts:
             - name: config
               mountPath: /config
+            - name: cache
+              mountPath: /cache
             - name: media
               mountPath: /data
               readOnly: true
+            - name: render-device
+              mountPath: /dev/dri/renderD128
       volumes:
         - name: config
           persistentVolumeClaim:
             claimName: jellyfin-config
+        - name: qsv-config
+          configMap:
+            name: jellyfin-qsv-config
+        - name: cache
+          emptyDir:
+            sizeLimit: 20Gi
         - name: media
           hostPath:
             path: /data/media
             type: Directory
+        - name: render-device
+          hostPath:
+            path: /dev/dri/renderD128
+            type: CharDevice
 ---
 apiVersion: v1
 kind: Service

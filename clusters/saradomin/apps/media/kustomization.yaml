@@ -6,6 +6,7 @@ namespace: media
 resources:
   - buildarr-config.yaml
   - buildarr.yaml
+  - recyclarr.yaml
   - qbittorrent.yaml
   - prowlarr.yaml
   - sonarr.yaml

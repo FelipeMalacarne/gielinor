@@ -4,12 +4,14 @@ metadata:
   name: qbittorrent-config
 data:
   qBittorrent.conf: |
+    [BitTorrent]
+    Session\Port=52457
+    Session\UseRandomPort=false
+
     [Preferences]
     WebUI\Address=*
     WebUI\Port=8080
     WebUI\AuthenticationEnabled=false
-    WebUI\AuthSubnetWhitelist=10.42.0.0/16
-    WebUI\AuthSubnetWhitelistEnabled=true
     Downloads\SavePath=/data/downloads/complete/
     Downloads\TempPath=/data/downloads/incomplete/
     Downloads\TempPathEnabled=true
@@ -60,26 +62,26 @@ spec:
               fi;
               config=/config/qBittorrent/qBittorrent.conf;
               temporary="${config}.tmp";
-              preferences_found=false;
+              bittorrent_found=false;
               : > "${temporary}";
               while IFS= read -r line || [ -n "${line}" ]; do
                 case "${line}" in
-                  '[Preferences]')
+                  '[BitTorrent]')
                     printf '%s\n' "${line}" >> "${temporary}";
-                    printf '%s\n' 'WebUI\AuthSubnetWhitelist=10.42.0.0/16' >> "${temporary}";
-                    printf '%s\n' 'WebUI\AuthSubnetWhitelistEnabled=true' >> "${temporary}";
-                    preferences_found=true
+                    printf '%s\n' 'Session\Port=52457' >> "${temporary}";
+                    printf '%s\n' 'Session\UseRandomPort=false' >> "${temporary}";
+                    bittorrent_found=true
                     ;;
-                  'WebUI\AuthSubnetWhitelist='*|'WebUI\AuthSubnetWhitelistEnabled='*) ;;
+                  'Session\Port='*|'Session\UseRandomPort='*|'WebUI\AuthSubnetWhitelist='*|'WebUI\AuthSubnetWhitelistEnabled='*) ;;
                   *)
                     printf '%s\n' "${line}" >> "${temporary}"
                     ;;
                 esac;
               done < "${config}";
-              if [ "${preferences_found}" != true ]; then
-                printf '%s\n' '[Preferences]' >> "${temporary}";
-                printf '%s\n' 'WebUI\AuthSubnetWhitelist=10.42.0.0/16' >> "${temporary}";
-                printf '%s\n' 'WebUI\AuthSubnetWhitelistEnabled=true' >> "${temporary}";
+              if [ "${bittorrent_found}" != true ]; then
+                printf '%s\n' '[BitTorrent]' >> "${temporary}";
+                printf '%s\n' 'Session\Port=52457' >> "${temporary}";
+                printf '%s\n' 'Session\UseRandomPort=false' >> "${temporary}";
               fi;
               mv "${temporary}" "${config}";
           securityContext:
@@ -113,6 +115,14 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+            - name: peer-tcp
+              containerPort: 52457
+              hostPort: 52457
+              protocol: TCP
+            - name: peer-udp
+              containerPort: 52457
+              hostPort: 52457
+              protocol: UDP
           resources:
             requests:
               cpu: 100m
@@ -120,12 +130,27 @@ spec:
             limits:
               cpu: 1000m
               memory: 768Mi
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 60
           readinessProbe:
             httpGet:
               path: /
               port: http
-            initialDelaySeconds: 30
+            timeoutSeconds: 5
             periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            timeoutSeconds: 5
+            periodSeconds: 30
+            failureThreshold: 3
           volumeMounts:
             - name: config
               mountPath: /config
@@ -159,12 +184,58 @@ spec:
       targetPort: http
 ---
 apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: qbittorrent-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: qbittorrent
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: sonarr
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: radarr
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: networking
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - port: 8080
+          protocol: TCP
+    - from:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 52457
+          protocol: TCP
+        - port: 52457
+          protocol: UDP
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: qbittorrent-auth
+spec:
+  basicAuth:
+    secret: qbittorrent-webui-auth
+    removeHeader: true
+---
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: qbittorrent
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: media-qbittorrent-auth@kubernetescrd
 spec:
   ingressClassName: traefik
   rules:

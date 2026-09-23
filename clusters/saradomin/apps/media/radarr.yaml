@@ -61,6 +61,16 @@ spec:
             limits:
               cpu: 500m
               memory: 768Mi
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: radarr.saradomin.ftm.dev.br
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 60
           readinessProbe:
             httpGet:
               path: /ping
@@ -68,8 +78,19 @@ spec:
               httpHeaders:
                 - name: Host
                   value: radarr.saradomin.ftm.dev.br
-            initialDelaySeconds: 45
+            timeoutSeconds: 5
             periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: radarr.saradomin.ftm.dev.br
+            timeoutSeconds: 5
+            periodSeconds: 30
+            failureThreshold: 3
           volumeMounts:
             - name: config
               mountPath: /config

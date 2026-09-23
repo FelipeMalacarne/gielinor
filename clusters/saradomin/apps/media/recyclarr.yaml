@@ -1,0 +1,542 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: recyclarr-config
+data:
+  settings.yml: |
+    resource_providers:
+      - name: local-sonarr-custom-formats
+        type: custom-formats
+        path: /config/custom-formats/sonarr
+        service: sonarr
+      - name: local-radarr-custom-formats
+        type: custom-formats
+        path: /config/custom-formats/radarr
+        service: radarr
+      - name: local-radarr-profiles
+        type: trash-guides
+        path: /config/local-guides
+  recyclarr.yml: |
+    sonarr:
+      tv:
+        base_url: http://sonarr:8989
+        api_key: !env_var SONARR_API_KEY
+        delete_old_custom_formats: true
+        quality_definition:
+          type: series
+        quality_profiles:
+          - trash_id: 72dae194fc92bf828f32cde7744e51a1
+            name: WEB-1080p
+            reset_unmatched_scores:
+              enabled: true
+          - trash_id: d1498e7d189fbe6c7110ceaabb7473e6
+            name: WEB-2160p
+            reset_unmatched_scores:
+              enabled: true
+        custom_formats:
+          - trash_ids:
+              - fm-language-not-original-or-portuguese
+            assign_scores_to:
+              - name: WEB-1080p
+                score: -10000
+              - name: WEB-2160p
+                score: -10000
+        custom_format_groups:
+          add:
+            - trash_id: d776a1ea912a117d66d83b880ff2055d
+              assign_scores_to:
+                - name: WEB-2160p
+
+    radarr:
+      movies:
+        base_url: http://radarr:7878
+        api_key: !env_var RADARR_API_KEY
+        delete_old_custom_formats: true
+        quality_definition:
+          type: movie
+        quality_profiles:
+          - trash_id: fm-hd-bluray-web-any-language
+            name: HD Bluray + WEB
+            reset_unmatched_scores:
+              enabled: true
+          - trash_id: fm-uhd-bluray-web-any-language
+            name: UHD Bluray + WEB
+            reset_unmatched_scores:
+              enabled: true
+        custom_formats:
+          - trash_ids:
+              - fm-language-not-original-or-portuguese
+            assign_scores_to:
+              - name: HD Bluray + WEB
+                score: -10000
+              - name: UHD Bluray + WEB
+                score: -10000
+        custom_format_groups:
+          add:
+            - trash_id: 7fc2751eef7e6bdc70b74136e5e35c76
+              assign_scores_to:
+                - name: UHD Bluray + WEB
+  sonarr-language-not-original-or-portuguese.json: |
+    {
+      "trash_id": "fm-language-not-original-or-portuguese",
+      "trash_scores": {
+        "default": -10000
+      },
+      "trash_description": "Reject releases whose audio is neither the original language, Portuguese, nor Portuguese (Brazil).",
+      "name": "Language: Not Original or Portuguese",
+      "includeCustomFormatWhenRenaming": false,
+      "specifications": [
+        {
+          "name": "Not Original",
+          "implementation": "LanguageSpecification",
+          "negate": true,
+          "required": true,
+          "fields": {
+            "value": -2
+          }
+        },
+        {
+          "name": "Not Portuguese",
+          "implementation": "LanguageSpecification",
+          "negate": true,
+          "required": true,
+          "fields": {
+            "value": 18
+          }
+        },
+        {
+          "name": "Not Portuguese (Brazil)",
+          "implementation": "LanguageSpecification",
+          "negate": true,
+          "required": true,
+          "fields": {
+            "value": 33
+          }
+        }
+      ]
+    }
+  radarr-language-not-original-or-portuguese.json: |
+    {
+      "trash_id": "fm-language-not-original-or-portuguese",
+      "trash_scores": {
+        "default": -10000
+      },
+      "trash_description": "Reject releases whose audio is neither the original language, Portuguese, nor Portuguese (Brazil).",
+      "name": "Language: Not Original or Portuguese",
+      "includeCustomFormatWhenRenaming": false,
+      "specifications": [
+        {
+          "name": "Not Original",
+          "implementation": "LanguageSpecification",
+          "negate": true,
+          "required": true,
+          "fields": {
+            "value": -2
+          }
+        },
+        {
+          "name": "Not Portuguese",
+          "implementation": "LanguageSpecification",
+          "negate": true,
+          "required": true,
+          "fields": {
+            "value": 18
+          }
+        },
+        {
+          "name": "Not Portuguese (Brazil)",
+          "implementation": "LanguageSpecification",
+          "negate": true,
+          "required": true,
+          "fields": {
+            "value": 30
+          }
+        }
+      ]
+    }
+  local-guides-metadata.json: |
+    {
+      "json_paths": {
+        "radarr": {
+          "quality_profiles": ["quality-profiles"]
+        }
+      }
+    }
+  radarr-hd-profile.json: |
+    {
+      "trash_id": "fm-hd-bluray-web-any-language",
+      "name": "HD Bluray + WEB",
+      "trash_description": "TRaSH HD Bluray + WEB profile with language filtering delegated to Custom Formats.",
+      "trash_url": "https://trash-guides.info/Radarr/radarr-setup-quality-profiles/#hd-bluray-web",
+      "group": 1,
+      "upgradeAllowed": true,
+      "cutoff": "Bluray-1080p",
+      "minFormatScore": 0,
+      "cutoffFormatScore": 10000,
+      "minUpgradeFormatScore": 1,
+      "language": "Any",
+      "items": [
+        { "name": "Bluray-1080p", "allowed": true },
+        { "name": "WEB 1080p", "allowed": true, "items": ["WEBRip-1080p", "WEBDL-1080p"] },
+        { "name": "Bluray-720p", "allowed": true },
+        { "name": "Raw-HD", "allowed": false },
+        { "name": "BR-DISK", "allowed": false },
+        { "name": "Remux-2160p", "allowed": false },
+        { "name": "Bluray-2160p", "allowed": false },
+        { "name": "WEB 2160p", "allowed": false, "items": ["WEBRip-2160p", "WEBDL-2160p"] },
+        { "name": "HDTV-2160p", "allowed": false },
+        { "name": "Remux-1080p", "allowed": false },
+        { "name": "HDTV-1080p", "allowed": false },
+        { "name": "WEB 720p", "allowed": false, "items": ["WEBRip-720p", "WEBDL-720p"] },
+        { "name": "HDTV-720p", "allowed": false },
+        { "name": "Bluray-576p", "allowed": false },
+        { "name": "Bluray-480p", "allowed": false },
+        { "name": "WEB 480p", "allowed": false, "items": ["WEBRip-480p", "WEBDL-480p"] },
+        { "name": "DVD-R", "allowed": false },
+        { "name": "DVD", "allowed": false },
+        { "name": "SDTV", "allowed": false },
+        { "name": "DVDSCR", "allowed": false },
+        { "name": "REGIONAL", "allowed": false },
+        { "name": "TELECINE", "allowed": false },
+        { "name": "TELESYNC", "allowed": false },
+        { "name": "CAM", "allowed": false },
+        { "name": "WORKPRINT", "allowed": false },
+        { "name": "Unknown", "allowed": false }
+      ],
+      "formatItems": {
+        "HD Bluray Tier 01": "ed27ebfef2f323e964fb1f61391bcb35",
+        "HD Bluray Tier 02": "c20c8647f2746a1f4c4262b0fbbeeeae",
+        "HD Bluray Tier 03": "5608c71bcebba0a5e666223bae8c9227",
+        "WEB Tier 01": "c20f169ef63c5f40c2def54abaf4438e",
+        "WEB Tier 02": "403816d65392c79236dcb6dd591aeda4",
+        "WEB Tier 03": "af94e0fe497124d1f9ce732069ec8c3b",
+        "Repack/Proper": "e7718d7a3ce595f289bfee26adc178f5",
+        "Repack2": "ae43b294509409a6a13919dedd4764c4",
+        "Repack3": "5caaaa1c08c1742aa4342d8c4cc463f2"
+      }
+    }
+  radarr-uhd-profile.json: |
+    {
+      "trash_id": "fm-uhd-bluray-web-any-language",
+      "name": "UHD Bluray + WEB",
+      "trash_description": "TRaSH UHD Bluray + WEB profile with language filtering delegated to Custom Formats.",
+      "trash_url": "https://trash-guides.info/Radarr/radarr-setup-quality-profiles/#uhd-bluray-web",
+      "group": 1,
+      "upgradeAllowed": true,
+      "cutoff": "Bluray-2160p",
+      "minFormatScore": 0,
+      "cutoffFormatScore": 10000,
+      "minUpgradeFormatScore": 1,
+      "language": "Any",
+      "items": [
+        { "name": "Bluray-2160p", "allowed": true },
+        { "name": "WEB 2160p", "allowed": true, "items": ["WEBRip-2160p", "WEBDL-2160p"] },
+        { "name": "Raw-HD", "allowed": false },
+        { "name": "BR-DISK", "allowed": false },
+        { "name": "Remux-2160p", "allowed": false },
+        { "name": "HDTV-2160p", "allowed": false },
+        { "name": "Remux-1080p", "allowed": false },
+        { "name": "Bluray-1080p", "allowed": false },
+        { "name": "WEB 1080p", "allowed": false, "items": ["WEBRip-1080p", "WEBDL-1080p"] },
+        { "name": "HDTV-1080p", "allowed": false },
+        { "name": "Bluray-720p", "allowed": false },
+        { "name": "WEB 720p", "allowed": false, "items": ["WEBRip-720p", "WEBDL-720p"] },
+        { "name": "HDTV-720p", "allowed": false },
+        { "name": "Bluray-576p", "allowed": false },
+        { "name": "Bluray-480p", "allowed": false },
+        { "name": "WEB 480p", "allowed": false, "items": ["WEBRip-480p", "WEBDL-480p"] },
+        { "name": "DVD-R", "allowed": false },
+        { "name": "DVD", "allowed": false },
+        { "name": "SDTV", "allowed": false },
+        { "name": "DVDSCR", "allowed": false },
+        { "name": "REGIONAL", "allowed": false },
+        { "name": "TELECINE", "allowed": false },
+        { "name": "TELESYNC", "allowed": false },
+        { "name": "CAM", "allowed": false },
+        { "name": "WORKPRINT", "allowed": false },
+        { "name": "Unknown", "allowed": false }
+      ],
+      "formatItems": {
+        "UHD Bluray Tier 01": "4d74ac4c4db0b64bff6ce0cffef99bf0",
+        "UHD Bluray Tier 02": "a58f517a70193f8e578056642178419d",
+        "UHD Bluray Tier 03": "e71939fae578037e7aed3ee219bbe7c1",
+        "WEB Tier 01": "c20f169ef63c5f40c2def54abaf4438e",
+        "WEB Tier 02": "403816d65392c79236dcb6dd591aeda4",
+        "WEB Tier 03": "af94e0fe497124d1f9ce732069ec8c3b",
+        "Repack/Proper": "e7718d7a3ce595f289bfee26adc178f5",
+        "Repack2": "ae43b294509409a6a13919dedd4764c4",
+        "Repack3": "5caaaa1c08c1742aa4342d8c4cc463f2"
+      }
+    }
+  configure-defaults.py: |
+    import json
+    import os
+    from pathlib import Path
+    from urllib.request import Request, urlopen
+
+    stock_profiles = {
+        "Any",
+        "SD",
+        "HD-720p",
+        "HD-1080p",
+        "Ultra-HD",
+        "HD - 720p/1080p",
+    }
+    services = (
+        {
+            "name": "sonarr",
+            "base_url": "http://sonarr:8989/api/v3",
+            "api_key": os.environ["SONARR_API_KEY"],
+            "target": "WEB-1080p",
+            "optional": "WEB-2160p",
+            "resource": "series",
+        },
+        {
+            "name": "radarr",
+            "base_url": "http://radarr:7878/api/v3",
+            "api_key": os.environ["RADARR_API_KEY"],
+            "target": "HD Bluray + WEB",
+            "optional": "UHD Bluray + WEB",
+            "resource": "movie",
+        },
+    )
+
+    def request_json(url, api_key, method="GET", payload=None):
+        data = None if payload is None else json.dumps(payload).encode()
+        request = Request(
+            url,
+            data=data,
+            method=method,
+            headers={"X-Api-Key": api_key, "Content-Type": "application/json"},
+        )
+        with urlopen(request, timeout=30) as response:
+            return json.load(response)
+
+    def configure_arr(service):
+        profiles = request_json(f"{service['base_url']}/qualityprofile", service["api_key"])
+        profile_by_name = {profile["name"]: profile["id"] for profile in profiles}
+        profile_by_id = {profile["id"]: profile["name"] for profile in profiles}
+        for required in (service["target"], service["optional"]):
+            if required not in profile_by_name:
+                raise RuntimeError(f"{service['name']} profile is missing: {required}")
+
+        target_id = profile_by_name[service["target"]]
+        migrated = 0
+        items = request_json(f"{service['base_url']}/{service['resource']}", service["api_key"])
+        for item in items:
+            current_name = profile_by_id.get(item.get("qualityProfileId"))
+            if current_name in stock_profiles and item.get("qualityProfileId") != target_id:
+                item["qualityProfileId"] = target_id
+                request_json(
+                    f"{service['base_url']}/{service['resource']}/{item['id']}",
+                    service["api_key"],
+                    method="PUT",
+                    payload=item,
+                )
+                migrated += 1
+        print(f"{service['name']}: migrated {migrated} existing item(s) to {service['target']}")
+        return target_id
+
+    def configure_seerr(service, profile_id, seerr_api_key):
+        endpoint = f"http://seerr:5055/api/v1/settings/{service['name']}"
+        servers = request_json(endpoint, seerr_api_key)
+        candidates = [server for server in servers if not server.get("is4k", False)]
+        if not candidates:
+            print(f"seerr: no non-4K {service['name']} server is configured; skipping default")
+            return
+        server = next(
+            (candidate for candidate in candidates if service["name"] in candidate.get("hostname", "")),
+            candidates[0],
+        )
+        server["activeProfileId"] = profile_id
+        server["activeProfileName"] = service["target"]
+        server["isDefault"] = True
+        request_json(
+            f"{endpoint}/{server['id']}",
+            seerr_api_key,
+            method="PUT",
+            payload=server,
+        )
+        print(f"seerr: {service['name']} now defaults to {service['target']}")
+
+    def main():
+        profile_ids = {service["name"]: configure_arr(service) for service in services}
+        seerr_settings_path = Path("/seerr/settings.json")
+        if not seerr_settings_path.exists():
+            print("seerr: settings.json is absent; skipping request defaults")
+            return
+        seerr_settings = json.loads(seerr_settings_path.read_text())
+        seerr_api_key = seerr_settings.get("main", {}).get("apiKey")
+        if not seerr_api_key:
+            print("seerr: API key is absent; skipping request defaults")
+            return
+        for service in services:
+            configure_seerr(service, profile_ids[service["name"]], seerr_api_key)
+
+    if __name__ == "__main__":
+        main()
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: recyclarr-config
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: recyclarr
+  labels:
+    app.kubernetes.io/name: recyclarr
+    app.kubernetes.io/part-of: arr-stack
+spec:
+  schedule: "15 4 * * *"
+  timeZone: America/Sao_Paulo
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: recyclarr
+            app.kubernetes.io/part-of: arr-stack
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          nodeSelector:
+            kubernetes.io/hostname: saradomin
+          securityContext:
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
+          initContainers:
+            - name: prepare-config
+              image: busybox:1.37@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
+              command:
+                - sh
+                - -c
+                - >-
+                  set -eu;
+                  cp /seed/settings.yml /config/settings.yml;
+                  cp /seed/recyclarr.yml /config/recyclarr.yml;
+                  mkdir -p /config/custom-formats/sonarr /config/custom-formats/radarr /config/local-guides/quality-profiles;
+                  cp /seed/sonarr-language-not-original-or-portuguese.json /config/custom-formats/sonarr/language-not-original-or-portuguese.json;
+                  cp /seed/radarr-language-not-original-or-portuguese.json /config/custom-formats/radarr/language-not-original-or-portuguese.json;
+                  cp /seed/local-guides-metadata.json /config/local-guides/metadata.json;
+                  cp /seed/radarr-hd-profile.json /config/local-guides/quality-profiles/hd-bluray-web.json;
+                  cp /seed/radarr-uhd-profile.json /config/local-guides/quality-profiles/uhd-bluray-web.json;
+                  chmod 0644 /config/settings.yml /config/recyclarr.yml /config/custom-formats/sonarr/language-not-original-or-portuguese.json /config/custom-formats/radarr/language-not-original-or-portuguese.json /config/local-guides/metadata.json /config/local-guides/quality-profiles/hd-bluray-web.json /config/local-guides/quality-profiles/uhd-bluray-web.json
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                runAsGroup: 1000
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              resources:
+                requests:
+                  cpu: 5m
+                  memory: 8Mi
+                limits:
+                  cpu: 25m
+                  memory: 32Mi
+              volumeMounts:
+                - name: config
+                  mountPath: /config
+                - name: seed
+                  mountPath: /seed
+                  readOnly: true
+            - name: recyclarr-sync
+              image: ghcr.io/recyclarr/recyclarr:8.7.2@sha256:6e69e009e1cd7493ff6093e8e187b5d3788c75b4a2c0c5127b6a1beda1c19728
+              imagePullPolicy: IfNotPresent
+              args:
+                - sync
+              env:
+                - name: TZ
+                  value: America/Sao_Paulo
+                - name: SONARR_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: arr-api-keys
+                      key: SONARR_API_KEY
+                - name: RADARR_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: arr-api-keys
+                      key: RADARR_API_KEY
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+              volumeMounts:
+                - name: config
+                  mountPath: /config
+          containers:
+            - name: configure-defaults
+              image: python:3.13-alpine@sha256:79e7a9b9ff1cbceff819f856fb374477792a5967759d94df266de7b7b4120e6f
+              imagePullPolicy: IfNotPresent
+              command:
+                - python
+                - /scripts/configure-defaults.py
+              env:
+                - name: PYTHONDONTWRITEBYTECODE
+                  value: "1"
+                - name: SONARR_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: arr-api-keys
+                      key: SONARR_API_KEY
+                - name: RADARR_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: arr-api-keys
+                      key: RADARR_API_KEY
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 65532
+                runAsGroup: 65532
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: seerr-config
+                  mountPath: /seerr
+                  readOnly: true
+          volumes:
+            - name: config
+              persistentVolumeClaim:
+                claimName: recyclarr-config
+            - name: seed
+              configMap:
+                name: recyclarr-config
+            - name: scripts
+              configMap:
+                name: recyclarr-config
+            - name: seerr-config
+              persistentVolumeClaim:
+                claimName: seerr-config
