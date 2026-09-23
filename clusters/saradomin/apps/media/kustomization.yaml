@@ -16,5 +16,13 @@ resources:
   - jellyfin.yaml
   - seerr.yaml
 
+configMapGenerator:
+  - name: bazarr-profile-sync
+    files:
+      - bazarr-profile-sync.py
+      - bazarr-profile.json
+    options:
+      disableNameSuffixHash: true
+
 generators:
   - ksops.yaml

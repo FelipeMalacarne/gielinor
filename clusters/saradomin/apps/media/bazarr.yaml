@@ -78,6 +78,29 @@ spec:
               mountPath: /config
             - name: data
               mountPath: /data
+        - name: profile-sync
+          image: lscr.io/linuxserver/bazarr:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - python3
+            - /profile-sync/bazarr-profile-sync.py
+          env:
+            - name: POLL_SECONDS
+              value: "300"
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: profile-sync
+              mountPath: /profile-sync
+              readOnly: true
       volumes:
         - name: config
           persistentVolumeClaim:
@@ -86,6 +109,10 @@ spec:
           hostPath:
             path: /data
             type: Directory
+        - name: profile-sync
+          configMap:
+            name: bazarr-profile-sync
+            defaultMode: 0444
 ---
 apiVersion: v1
 kind: Service

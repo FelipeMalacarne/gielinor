@@ -1,0 +1,20 @@
+{
+  "profileId": 1,
+  "name": "ptbr",
+  "cutoff": null,
+  "items": [
+    {
+      "id": 1,
+      "language": "pb",
+      "audio_exclude": "False",
+      "audio_only_include": "False",
+      "hi": "False",
+      "forced": "False"
+    }
+  ],
+  "mustContain": [],
+  "mustNotContain": [],
+  "originalFormat": 0,
+  "tag": null,
+  "enabledLanguages": ["pb"]
+}
