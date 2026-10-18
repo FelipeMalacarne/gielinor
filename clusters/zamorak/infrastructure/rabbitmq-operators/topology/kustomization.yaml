@@ -25,3 +25,15 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/cpu
         value: 25m
+  # Nó único e réplica única: o rolling update cria o pod novo antes de matar o antigo e
+  # trava quando o nó está cheio (surge nunca cabe). Recreate derruba o antigo primeiro.
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: messaging-topology-operator
+    patch: |-
+      - op: replace
+        path: /spec/strategy
+        value:
+          type: Recreate
