@@ -13,7 +13,7 @@ resources:
   - apps/vaultwarden
   - apps/n8n
   - apps/rabbitmq
-  # - apps/mapa  # ativar depois de preencher apps/mapa/secrets.yaml (ver apps/mapa/README.md)
+  - apps/mapa
   # - apps/docling
 
 labels:
