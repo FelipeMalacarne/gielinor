@@ -2,9 +2,9 @@ terraform {
   required_version = ">= 1.0"
 
   backend "s3" {
-    bucket                      = "gielinor-tfstate"
-    key                         = "terraform/state/gielinor.tfstate"
-    region                      = "auto"
+    bucket = "gielinor-tfstate"
+    key    = "terraform/state/gielinor.tfstate"
+    region = "auto"
     endpoints = {
       s3 = "https://0eba569b4bb5e3bb00cdeae6772f44d8.r2.cloudflarestorage.com"
     }
@@ -22,4 +22,7 @@ module "cloudflare" {
   account_id = var.cloudflare_account_id
   zone_id    = var.cloudflare_zone_id
   zone       = var.cloudflare_zone
+
+  mapa_zone_id = var.mapa_zone_id
+  mapa_zone    = var.mapa_zone
 }
