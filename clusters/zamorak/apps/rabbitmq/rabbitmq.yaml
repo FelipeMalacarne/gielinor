@@ -11,7 +11,8 @@ spec:
     storage: 10Gi
   resources:
     requests:
-      cpu: 500m
+      # 2 vCPU no nó: reserva mínima; o limite segue o mesmo (ver limits abaixo).
+      cpu: 100m
       memory: 1Gi
     limits:
       cpu: 500m
