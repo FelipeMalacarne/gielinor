@@ -20,6 +20,13 @@ spec:
         passwordSecret:
           name: n8n-db-secret
 
+      # mapa-do-acerto (ADR-017 do mapa): senha em apps/mapa/secrets.yaml (namespace databases).
+      - name: mapa
+        ensure: present
+        login: true
+        passwordSecret:
+          name: mapa-db-secret
+
   postgresql:
     parameters:
       max_connections: "100"

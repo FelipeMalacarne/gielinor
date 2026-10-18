@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Mapa do Acerto: o que é do cluster. Como o app roda vive no repositório do mapa
+# (deploy/k8s), apontado pela Application abaixo. Sem `namespace:` aqui: a Application
+# fica em argocd, o Database em databases e o Secret do app em mapa.
+resources:
+  - application.yaml
+  - database.yaml
+
+generators:
+  - ksops.yaml

@@ -44,10 +44,26 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "zamorak_tunnel_confi
         service  = "http://traefik.kube-system.svc.cluster.local:80"
       },
       {
+        # API do Mapa do Acerto: privada ao Worker do web (X-Internal-Token no binário;
+        # regra de WAF na zona mapadoacerto.com.br bloqueia requisições sem o header).
+        hostname = "api.${var.mapa_zone}"
+        service  = "http://traefik.kube-system.svc.cluster.local:80"
+      },
+      {
         service = "http_status:404"
       }
     ]
   }
+}
+
+resource "cloudflare_dns_record" "mapa_api_dns" {
+  zone_id = var.mapa_zone_id
+  name    = "api.${var.mapa_zone}"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.zamorak_tunnel.id}.cfargotunnel.com"
+  type    = "CNAME"
+  ttl     = 1
+  proxied = true
+  comment = "[terraform] zamorak mapa-do-acerto api"
 }
 
 resource "cloudflare_dns_record" "whoami_dns" {

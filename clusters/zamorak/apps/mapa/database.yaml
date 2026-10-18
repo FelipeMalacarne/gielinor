@@ -1,0 +1,19 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: postgres-main-mapa
+  namespace: databases
+spec:
+  cluster:
+    name: postgres-main
+
+  name: mapa
+  owner: mapa
+
+  # pgvector para os embeddings do M3 (ADR-002 do mapa). O role `mapa` está em
+  # apps/postgres/cluster.yaml; a senha em secrets.yaml deste diretório.
+  extensions:
+    - name: vector
+      ensure: present
+
+  databaseReclaimPolicy: retain

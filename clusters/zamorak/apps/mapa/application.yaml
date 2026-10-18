@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mapa
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # Repositório privado: credencial em secrets.yaml (mapa-do-acerto-repo).
+    # Kustomize puro, sem o plugin ksops: os segredos do app são criados por este repositório.
+    repoURL: git@github.com:FelipeMalacarne/mapa-do-acerto.git
+    targetRevision: main
+    path: deploy/k8s/overlays/zamorak
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mapa
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+    syncOptions:
+      - PruneLast=true
