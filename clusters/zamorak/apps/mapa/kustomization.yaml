@@ -7,6 +7,7 @@ kind: Kustomization
 resources:
   - application.yaml
   - database.yaml
+  - serviceaccount.yaml
 
 generators:
   - ksops.yaml

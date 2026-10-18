@@ -13,6 +13,10 @@ repositório do mapa e é atualizado pelo CI dele a cada merge na `main`.
    `API_INTERNAL_TOKEN` (o mesmo vai para o Worker do web) e a deploy key só-leitura
    do repositório do mapa (`ssh-keygen -t ed25519 -f mapa-argocd -N ''`; a pública
    em Settings → Deploy keys do mapa, a privada aqui).
+   A imagem no GHCR é privada e a deploy key não serve para registry: em
+   `sops clusters/zamorak/apps/mapa/ghcr-pull-secret.yaml` troque `CHANGE_ME` por um
+   token clássico do GitHub com escopo `read:packages`. Ele entra como `imagePullSecret`
+   da ServiceAccount `default` do namespace (`serviceaccount.yaml`).
 2. **Cloudflare.** Zona `mapadoacerto.com.br` na conta; `mapa_zone_id` no tfvars;
    `make tf-plan` / `make tf-apply` cria o CNAME `api.` para o túnel e a regra de
    ingress. Regra de WAF na zona bloqueando `api.mapadoacerto.com.br` sem o header
