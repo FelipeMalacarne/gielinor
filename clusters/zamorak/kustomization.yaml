@@ -12,7 +12,8 @@ resources:
   - apps/postgres
   - apps/redis
   - apps/vaultwarden
-  - apps/n8n
+  # - apps/n8n
+  - apps/n8n/pvc.yaml # Preserve data while n8n is disabled.
   - apps/rabbitmq
   - apps/mapa
   # - apps/docling
