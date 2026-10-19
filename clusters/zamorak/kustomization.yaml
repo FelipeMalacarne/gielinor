@@ -6,6 +6,7 @@ resources:
   - infrastructure/argocd
   - infrastructure/rabbitmq-operators
   - infrastructure/cloudflared
+  - infrastructure/tailscale
   - infrastructure/whoami
   - infrastructure/cnpg
   - apps/postgres

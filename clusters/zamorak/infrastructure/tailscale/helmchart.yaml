@@ -1,0 +1,29 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: tailscale-operator
+  namespace: kube-system
+spec:
+  repo: https://pkgs.tailscale.com/helmcharts
+  chart: tailscale-operator
+  version: 1.104.1
+  targetNamespace: tailscale
+  createNamespace: false
+  timeout: 10m
+  valuesContent: |-
+    installCRDs: true
+    operatorConfig:
+      hostname: zamorak-k8s-operator
+      defaultTags:
+        - tag:k8s-operator
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 200m
+          memory: 256Mi
+    proxyConfig:
+      defaultTags: tag:k8s
+    apiServerProxyConfig:
+      mode: "false"
