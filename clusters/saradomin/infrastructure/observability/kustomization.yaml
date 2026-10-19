@@ -8,3 +8,11 @@ resources:
   - power-dashboard.yaml
   - logs-dashboard.yaml
   - log-volume-dashboard.yaml
+  - cluster-overview-dashboard.yaml
+  - telemetry-gateway.yaml
+
+configMapGenerator:
+  - name: telemetry-gateway-config
+    namespace: observability
+    files:
+      - nginx.conf=telemetry-nginx.conf

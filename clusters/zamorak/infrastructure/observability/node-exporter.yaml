@@ -1,0 +1,24 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: node-exporter
+  namespace: kube-system
+spec:
+  repo: https://prometheus-community.github.io/helm-charts
+  chart: prometheus-node-exporter
+  version: 4.53.0
+  targetNamespace: observability
+  createNamespace: false
+  timeout: 10m
+  valuesContent: |-
+    fullnameOverride: node-exporter
+    service:
+      listenOnAllInterfaces: false
+      annotations: {}
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi

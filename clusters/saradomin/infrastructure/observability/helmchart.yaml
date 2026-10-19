@@ -13,7 +13,7 @@ spec:
   valuesContent: |-
     grafana:
       podAnnotations:
-        gielinor.felipe/observability-config: loki-v3-level-filter
+        gielinor.felipe/observability-config: multicluster-v1
       service:
         type: ClusterIP
       ingress:
@@ -45,6 +45,9 @@ spec:
           initDashboards: true
           watchMethod: LIST
           skipReload: true
+          multicluster:
+            global:
+              enabled: true
         datasources:
           initDatasources: true
           watchMethod: LIST
@@ -61,13 +64,22 @@ spec:
     prometheus:
       prometheusSpec:
         retention: 15d
+        retentionSize: 16GB
+        enableRemoteWriteReceiver: true
+        scrapeClasses:
+          - name: saradomin
+            default: true
+            relabelings:
+              - action: replace
+                targetLabel: cluster
+                replacement: saradomin
         resources:
           requests:
             cpu: 200m
-            memory: 512Mi
+            memory: 768Mi
           limits:
-            cpu: 500m
-            memory: 1024Mi
+            cpu: "1"
+            memory: 2Gi
         storageSpec:
           volumeClaimTemplate:
             spec:

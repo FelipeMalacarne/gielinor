@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-overview-dashboard
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  cluster-overview.json: |
+    {
+      "uid": "gielinor-clusters",
+      "title": "Gielinor Cluster Overview",
+      "tags": ["kubernetes", "multicluster"],
+      "schemaVersion": 39,
+      "version": 1,
+      "editable": true,
+      "refresh": "30s",
+      "time": {"from": "now-1h", "to": "now"},
+      "timezone": "browser",
+      "templating": {
+        "list": [
+          {
+            "name": "cluster", "type": "query",
+            "datasource": {"type": "prometheus", "uid": "prometheus"},
+            "query": "label_values(kube_node_info, cluster)",
+            "refresh": 1,
+            "current": {"text": "zamorak", "value": "zamorak"},
+            "includeAll": false, "multi": false, "options": []
+          },
+          {
+            "name": "namespace", "type": "query",
+            "datasource": {"type": "prometheus", "uid": "prometheus"},
+            "query": "label_values(kube_pod_info{cluster=\"$cluster\"}, namespace)",
+            "refresh": 1,
+            "current": {"text": "All", "value": "$__all"},
+            "includeAll": true, "allValue": ".*", "multi": true, "options": []
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1, "title": "Node CPU", "type": "stat",
+          "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100}, "overrides": []},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"], "values": false}},
+          "targets": [{"refId": "A", "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{cluster=\"$cluster\", job=\"node-exporter\", mode=\"idle\"}[5m])))"}]
+        },
+        {
+          "id": 2, "title": "Node Memory", "type": "stat",
+          "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100}, "overrides": []},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"], "values": false}},
+          "targets": [{"refId": "A", "expr": "100 * (1 - sum(node_memory_MemAvailable_bytes{cluster=\"$cluster\", job=\"node-exporter\"}) / sum(node_memory_MemTotal_bytes{cluster=\"$cluster\", job=\"node-exporter\"}))"}]
+        },
+        {
+          "id": 3, "title": "Root Disk Used", "type": "stat",
+          "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100}, "overrides": []},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"], "values": false}},
+          "targets": [{"refId": "A", "expr": "100 * (1 - sum(node_filesystem_avail_bytes{cluster=\"$cluster\", job=\"node-exporter\", mountpoint=\"/\", fstype!~\"tmpfs|overlay\"}) / sum(node_filesystem_size_bytes{cluster=\"$cluster\", job=\"node-exporter\", mountpoint=\"/\", fstype!~\"tmpfs|overlay\"}))"}]
+        },
+        {
+          "id": 4, "title": "Container Restarts / 15m", "type": "stat",
+          "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"unit": "short", "min": 0}, "overrides": []},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"], "values": false}},
+          "targets": [{"refId": "A", "expr": "sum(increase(kube_pod_container_status_restarts_total{cluster=\"$cluster\", namespace=~\"$namespace\"}[15m]))"}]
+        },
+        {
+          "id": 5, "title": "Container CPU by Namespace", "type": "timeseries",
+          "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"unit": "cores", "min": 0}, "overrides": []},
+          "targets": [{"refId": "A", "expr": "sum by (namespace) (rate(container_cpu_usage_seconds_total{cluster=\"$cluster\", namespace=~\"$namespace\", job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", image!=\"\", container!=\"POD\"}[5m]))", "legendFormat": "{{namespace}}"}]
+        },
+        {
+          "id": 6, "title": "Container Memory by Namespace", "type": "timeseries",
+          "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"unit": "bytes", "min": 0}, "overrides": []},
+          "targets": [{"refId": "A", "expr": "sum by (namespace) (container_memory_working_set_bytes{cluster=\"$cluster\", namespace=~\"$namespace\", job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", image!=\"\", container!=\"POD\"})", "legendFormat": "{{namespace}}"}]
+        },
+        {
+          "id": 7, "title": "Logs by Namespace", "type": "timeseries",
+          "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "fieldConfig": {"defaults": {"unit": "ops", "min": 0}, "overrides": []},
+          "targets": [{"refId": "A", "expr": "sum by (namespace) (rate({cluster=\"$cluster\", namespace=~\"$namespace\"}[5m]))", "legendFormat": "{{namespace}}"}]
+        },
+        {
+          "id": 8, "title": "Scrape Targets (1 = Healthy)", "type": "table",
+          "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "up{cluster=\"$cluster\"}", "instant": true, "format": "table"}]
+        },
+        {
+          "id": 9, "title": "Latest Metrics Age", "type": "stat",
+          "description": "No data means the cluster's series are stale. Fresh samples should usually be less than 60 seconds old.",
+          "gridPos": {"x": 0, "y": 20, "w": 8, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"unit": "s", "min": 0}, "overrides": []},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"], "values": false}},
+          "targets": [{"refId": "A", "expr": "time() - max(timestamp(up{cluster=\"$cluster\"}))", "instant": true}]
+        },
+        {
+          "id": 10, "title": "CPU Requests / Allocatable", "type": "stat",
+          "gridPos": {"x": 8, "y": 20, "w": 8, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0}, "overrides": []},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"], "values": false}},
+          "targets": [{"refId": "A", "expr": "100 * sum(kube_pod_container_resource_requests{cluster=\"$cluster\", resource=\"cpu\"} * on (cluster, namespace, pod) group_left() max by (cluster, namespace, pod) (kube_pod_status_phase{cluster=\"$cluster\", phase=~\"Pending|Running\"} == 1)) / sum(kube_node_status_allocatable{cluster=\"$cluster\", resource=\"cpu\"})", "instant": true}]
+        },
+        {
+          "id": 11, "title": "Pending Pods", "type": "stat",
+          "gridPos": {"x": 16, "y": 20, "w": 8, "h": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"unit": "short", "min": 0}, "overrides": []},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"], "values": false}},
+          "targets": [{"refId": "A", "expr": "sum(kube_pod_status_phase{cluster=\"$cluster\", namespace=~\"$namespace\", phase=\"Pending\"})", "instant": true}]
+        }
+      ]
+    }

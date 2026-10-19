@@ -58,10 +58,9 @@ tailnet authentication succeeded.
 
 ## Observability Connectivity
 
-The operator manages connectivity resources; installing it does not route
-workload traffic through Tailscale automatically. The Alloy collector will
-need an egress Service/proxy targeting Saradomin's telemetry ingestion
-endpoints and a tailnet policy permitting that traffic.
+The observability component defines the Alloy collector and an egress
+Service/proxy targeting Saradomin's telemetry gateway. See
+`../observability/README.md` for the topology and verification steps.
 
 For an egress `ExternalName` Service, Tailscale owns `spec.externalName`.
 Configure Argo CD to ignore that field for the specific Service and enable

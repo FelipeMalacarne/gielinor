@@ -1,0 +1,349 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: alloy
+  namespace: kube-system
+spec:
+  repo: https://grafana.github.io/helm-charts
+  chart: alloy
+  version: 1.12.1
+  targetNamespace: observability
+  createNamespace: false
+  timeout: 15m
+  valuesContent: |-
+    rbac:
+      create: false
+    crds:
+      create: false
+    serviceAccount:
+      name: alloy
+    controller:
+      type: statefulset
+      replicas: 1
+      volumeClaimTemplates:
+        - metadata:
+            name: data
+          spec:
+            accessModes: [ReadWriteOnce]
+            storageClassName: local-path
+            resources:
+              requests:
+                storage: 5Gi
+    configReloader:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+    alloy:
+      enableReporting: false
+      # Loki's durable write-ahead log requires this stability level in v1.19.2.
+      stabilityLevel: experimental
+      storagePath: /var/lib/alloy
+      mounts:
+        extra:
+          - name: data
+            mountPath: /var/lib/alloy
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      configMap:
+        content: |-
+          logging {
+            level  = "info"
+            format = "logfmt"
+          }
+
+          prometheus.remote_write "saradomin" {
+            external_labels = { cluster = "zamorak" }
+
+            endpoint {
+              url = "http://saradomin-telemetry.observability.svc.cluster.local/api/v1/write"
+              queue_config {
+                min_shards           = 1
+                max_shards           = 2
+                capacity             = 5000
+                max_samples_per_send = 2000
+              }
+            }
+
+            wal {
+              truncate_frequency = "1h"
+              min_keepalive_time = "15m"
+              max_keepalive_time = "8h"
+            }
+          }
+
+          discovery.kubernetes "nodes" {
+            role = "node"
+          }
+
+          discovery.relabel "kubelet" {
+            targets = discovery.kubernetes.nodes.targets
+            rule {
+              target_label = "__address__"
+              replacement  = "kubernetes.default.svc:443"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_node_name"]
+              target_label  = "__metrics_path__"
+              replacement   = "/api/v1/nodes/$1/proxy/metrics"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_node_name"]
+              target_label  = "node"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_node_name"]
+              target_label  = "instance"
+            }
+            rule {
+              target_label = "metrics_path"
+              replacement  = "/metrics"
+            }
+          }
+
+          prometheus.scrape "kubelet" {
+            targets         = discovery.relabel.kubelet.output
+            job_name        = "kubelet"
+            scrape_interval = "30s"
+            scheme          = "https"
+            bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+            tls_config {
+              ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+            }
+            forward_to = [prometheus.remote_write.saradomin.receiver]
+          }
+
+          discovery.relabel "cadvisor" {
+            targets = discovery.relabel.kubelet.output
+            rule {
+              source_labels = ["node"]
+              target_label  = "__metrics_path__"
+              replacement   = "/api/v1/nodes/$1/proxy/metrics/cadvisor"
+            }
+            rule {
+              target_label = "metrics_path"
+              replacement  = "/metrics/cadvisor"
+            }
+          }
+
+          prometheus.scrape "cadvisor" {
+            targets         = discovery.relabel.cadvisor.output
+            job_name        = "kubelet"
+            scrape_interval = "30s"
+            scheme          = "https"
+            bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+            tls_config {
+              ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+            }
+            forward_to = [prometheus.remote_write.saradomin.receiver]
+          }
+
+          prometheus.scrape "apiserver" {
+            targets = [{ __address__ = "kubernetes.default.svc:443" }]
+            job_name        = "apiserver"
+            scrape_interval = "60s"
+            scheme          = "https"
+            bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+            tls_config {
+              ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+            }
+            forward_to = [prometheus.remote_write.saradomin.receiver]
+          }
+
+          prometheus.scrape "kube_state_metrics" {
+            targets = [{ __address__ = "kube-state-metrics.observability.svc.cluster.local:8080" }]
+            job_name        = "kube-state-metrics"
+            scrape_interval = "30s"
+            honor_labels    = true
+            forward_to      = [prometheus.remote_write.saradomin.receiver]
+          }
+
+          discovery.kubernetes "node_exporter" {
+            role = "pod"
+            namespaces { names = ["observability"] }
+            selectors {
+              role  = "pod"
+              label = "app.kubernetes.io/name=prometheus-node-exporter"
+            }
+          }
+
+          discovery.relabel "node_exporter" {
+            targets = discovery.kubernetes.node_exporter.targets
+            rule {
+              source_labels = ["__meta_kubernetes_pod_phase"]
+              regex         = "Running"
+              action        = "keep"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_container_port_number"]
+              regex         = "9100"
+              action        = "keep"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_node_name"]
+              target_label  = "instance"
+            }
+          }
+
+          prometheus.scrape "node_exporter" {
+            targets         = discovery.relabel.node_exporter.output
+            job_name        = "node-exporter"
+            scrape_interval = "30s"
+            forward_to      = [prometheus.remote_write.saradomin.receiver]
+          }
+
+          discovery.kubernetes "coredns" {
+            role = "pod"
+            namespaces { names = ["kube-system"] }
+            selectors {
+              role  = "pod"
+              label = "k8s-app=kube-dns"
+            }
+          }
+
+          discovery.relabel "coredns" {
+            targets = discovery.kubernetes.coredns.targets
+            rule {
+              source_labels = ["__meta_kubernetes_pod_container_port_number"]
+              regex         = "9153"
+              action        = "keep"
+            }
+          }
+
+          prometheus.scrape "coredns" {
+            targets         = discovery.relabel.coredns.output
+            job_name        = "coredns"
+            scrape_interval = "30s"
+            forward_to      = [prometheus.remote_write.saradomin.receiver]
+          }
+
+          prometheus.scrape "alloy" {
+            targets = [{ __address__ = "127.0.0.1:12345", instance = "zamorak" }]
+            job_name        = "alloy"
+            scrape_interval = "30s"
+            forward_to      = [prometheus.remote_write.saradomin.receiver]
+          }
+
+          discovery.kubernetes "pods" {
+            role = "pod"
+          }
+
+          discovery.relabel "app_metrics" {
+            targets = discovery.kubernetes.pods.targets
+            rule {
+              source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
+              regex         = "true"
+              action        = "keep"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_phase"]
+              regex         = "Running"
+              action        = "keep"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_port"]
+              regex         = "[0-9]+"
+              action        = "keep"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_port"]
+              target_label  = "__tmp_metrics_port"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_container_port_number"]
+              target_label  = "__tmp_metrics_port"
+              action        = "keepequal"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_path"]
+              regex         = "(.+)"
+              target_label  = "__metrics_path__"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_namespace"]
+              target_label  = "namespace"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_name"]
+              target_label  = "pod"
+            }
+          }
+
+          prometheus.scrape "apps" {
+            targets         = discovery.relabel.app_metrics.output
+            job_name        = "kubernetes-pods"
+            scrape_interval = "30s"
+            forward_to      = [prometheus.remote_write.saradomin.receiver]
+          }
+
+          loki.write "saradomin" {
+            endpoint {
+              url                 = "http://saradomin-telemetry.observability.svc.cluster.local/loki/api/v1/push"
+              min_backoff_period  = "1s"
+              max_backoff_period  = "30s"
+              max_backoff_retries = 10000
+            }
+            wal {
+              enabled         = true
+              max_segment_age = "4h"
+            }
+          }
+
+          discovery.relabel "pod_logs" {
+            targets = discovery.kubernetes.pods.targets
+            rule {
+              source_labels = ["__meta_kubernetes_namespace"]
+              target_label  = "namespace"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_name"]
+              target_label  = "pod"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_container_name"]
+              target_label  = "container"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_node_name"]
+              target_label  = "node"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+              target_label  = "app"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_component"]
+              target_label  = "component"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+              target_label  = "job"
+              separator     = "/"
+            }
+          }
+
+          loki.source.kubernetes "pod_logs" {
+            targets    = discovery.relabel.pod_logs.output
+            forward_to = [loki.process.pod_logs.receiver]
+          }
+
+          loki.process "pod_logs" {
+            stage.regex {
+              expression = `(?i)(^|[\s"{\[])(level|severity|levelname)?["']?\s*[=:]?\s*["']?(?P<level>trace|debug|info|notice|warn(ing)?|error|err|fatal|panic|critical)\b`
+            }
+            stage.labels {
+              values = { level = "" }
+            }
+            stage.static_labels {
+              values = { cluster = "zamorak" }
+            }
+            forward_to = [loki.write.saradomin.receiver]
+          }

@@ -16,6 +16,13 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
+  ignoreDifferences:
+    - group: ""
+      kind: Service
+      namespace: observability
+      name: saradomin-telemetry
+      jsonPointers:
+        - /spec/externalName
   syncPolicy:
     automated:
       prune: true
@@ -29,3 +36,4 @@ spec:
     syncOptions:
       - PruneLast=true
       - SkipDryRunOnMissingResource=true
+      - RespectIgnoreDifferences=true

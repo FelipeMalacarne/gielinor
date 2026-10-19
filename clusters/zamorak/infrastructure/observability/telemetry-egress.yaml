@@ -1,0 +1,41 @@
+apiVersion: tailscale.com/v1alpha1
+kind: ProxyClass
+metadata:
+  name: telemetry-egress
+spec:
+  statefulSet:
+    pod:
+      tailscaleContainer:
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 192Mi
+      tailscaleInitContainer:
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: saradomin-telemetry
+  namespace: observability
+  annotations:
+    tailscale.com/tailnet-fqdn: saradomin-telemetry.osiris-fish.ts.net
+    tailscale.com/hostname: zamorak-telemetry-egress
+    tailscale.com/proxy-class: telemetry-egress
+spec:
+  type: ExternalName
+  # The operator replaces this with the in-cluster egress proxy Service.
+  externalName: placeholder
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP

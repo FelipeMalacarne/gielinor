@@ -190,12 +190,12 @@ data:
             "current": { "text": "All", "value": ["$__all"] },
             "allValue": ".*",
             "datasource": { "type": "loki", "uid": "${datasource}" },
-            "definition": "label_values(level)",
+            "definition": "label_values({cluster=~\"$cluster\"}, level)",
             "includeAll": true,
             "multi": true,
             "name": "level",
             "options": [],
-            "query": "label_values(level)",
+            "query": "label_values({cluster=~\"$cluster\"}, level)",
             "refresh": 2,
             "type": "query"
           },
@@ -203,12 +203,12 @@ data:
             "current": { "text": "All", "value": ["$__all"] },
             "allValue": ".*",
             "datasource": { "type": "loki", "uid": "${datasource}" },
-            "definition": "label_values(namespace)",
+            "definition": "label_values({cluster=~\"$cluster\"}, namespace)",
             "includeAll": true,
             "multi": true,
             "name": "namespace",
             "options": [],
-            "query": "label_values(namespace)",
+            "query": "label_values({cluster=~\"$cluster\"}, namespace)",
             "refresh": 2,
             "type": "query"
           },
@@ -216,12 +216,12 @@ data:
             "current": { "text": "All", "value": ["$__all"] },
             "allValue": ".*",
             "datasource": { "type": "loki", "uid": "${datasource}" },
-            "definition": "label_values(pod, namespace=~\"$namespace\")",
+            "definition": "label_values({cluster=~\"$cluster\", namespace=~\"$namespace\"}, pod)",
             "includeAll": true,
             "multi": true,
             "name": "pod",
             "options": [],
-            "query": "label_values(pod, namespace=~\"$namespace\")",
+            "query": "label_values({cluster=~\"$cluster\", namespace=~\"$namespace\"}, pod)",
             "refresh": 2,
             "type": "query"
           },
@@ -229,12 +229,12 @@ data:
             "current": { "text": "All", "value": ["$__all"] },
             "allValue": ".*",
             "datasource": { "type": "loki", "uid": "${datasource}" },
-            "definition": "label_values(container, namespace=~\"$namespace\", pod=~\"$pod\")",
+            "definition": "label_values({cluster=~\"$cluster\", namespace=~\"$namespace\", pod=~\"$pod\"}, container)",
             "includeAll": true,
             "multi": true,
             "name": "container",
             "options": [],
-            "query": "label_values(container, namespace=~\"$namespace\", pod=~\"$pod\")",
+            "query": "label_values({cluster=~\"$cluster\", namespace=~\"$namespace\", pod=~\"$pod\"}, container)",
             "refresh": 2,
             "type": "query"
           }
@@ -244,5 +244,5 @@ data:
       "timezone": "browser",
       "title": "Kubernetes Log Volume",
       "uid": "kubernetes-log-volume",
-      "version": 1
+      "version": 2
     }
