@@ -66,6 +66,45 @@ resource "cloudflare_dns_record" "mapa_api_dns" {
   comment = "[terraform] zamorak mapa-do-acerto api"
 }
 
+# O apex é custom domain do Worker mapa-web (wrangler.jsonc no repo do mapa). O `www` só
+# existe para a regra abaixo redirecionar na borda, sem invocar o Worker: 100:: é o
+# endereço de descarte que o Cloudflare recomenda para hostname só com redirect.
+resource "cloudflare_dns_record" "mapa_www_dns" {
+  zone_id = var.mapa_zone_id
+  name    = "www.${var.mapa_zone}"
+  content = "100::"
+  type    = "AAAA"
+  ttl     = 1
+  proxied = true
+  comment = "[terraform] mapa-do-acerto www -> apex (redirect rule)"
+}
+
+# Só pode haver um ruleset por fase na zona: se o apply falhar dizendo que já existe,
+# a regra foi criada pelo painel e precisa ser importada ou apagada antes.
+resource "cloudflare_ruleset" "mapa_redirects" {
+  zone_id     = var.mapa_zone_id
+  name        = "mapa redirects"
+  description = "Redirects da zona ${var.mapa_zone}"
+  kind        = "zone"
+  phase       = "http_request_dynamic_redirect"
+
+  rules = [{
+    ref         = "www_to_apex"
+    description = "www.${var.mapa_zone} -> ${var.mapa_zone}"
+    expression  = "(http.host eq \"www.${var.mapa_zone}\")"
+    action      = "redirect"
+    action_parameters = {
+      from_value = {
+        status_code           = 301
+        preserve_query_string = true
+        target_url = {
+          expression = "concat(\"https://${var.mapa_zone}\", http.request.uri.path)"
+        }
+      }
+    }
+  }]
+}
+
 resource "cloudflare_dns_record" "whoami_dns" {
   zone_id = var.zone_id
   name    = "whoami.${var.zone}"
