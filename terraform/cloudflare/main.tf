@@ -166,6 +166,26 @@ resource "cloudflare_zero_trust_access_application" "argocd" {
   }]
 }
 
+# Webhook do GitHub para o Argo CD (push no mapa-do-acerto → refresh na hora). O caminho
+# mais específico ganha do app acima; quem autentica é o Argo, pelo HMAC do segredo do
+# webhook (Secret argocd-webhook). Sem segredo configurado, o Argo aceita qualquer POST.
+resource "cloudflare_zero_trust_access_application" "argocd_webhook" {
+  account_id       = var.account_id
+  name             = "Zamorak Argo CD webhook"
+  domain           = "argocd.${var.zone}/api/webhook"
+  type             = "self_hosted"
+  session_duration = "24h"
+
+  policies = [{
+    name       = "Bypass GitHub webhook"
+    precedence = 1
+    decision   = "bypass"
+    include = [{
+      everyone = {}
+    }]
+  }]
+}
+
 resource "cloudflare_zero_trust_tunnel_cloudflared" "saradomin_tunnel" {
   account_id = var.account_id
   name       = "Terraform saradomin tunnel"
