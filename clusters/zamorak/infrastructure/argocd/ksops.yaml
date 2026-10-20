@@ -1,0 +1,11 @@
+apiVersion: viaduct.ai/v1
+kind: ksops
+metadata:
+  name: ksops-generator
+  annotations:
+    config.kubernetes.io/function: |
+      exec:
+        path: ksops
+files:
+  # Secret argocd-webhook (chave `github`): segredo do webhook do repo mapa-do-acerto.
+  - secrets.yaml
