@@ -45,7 +45,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "zamorak_tunnel_confi
       },
       {
         # API do Mapa do Acerto: privada ao Worker do web (X-Internal-Token no binário;
-        # regra de WAF na zona mapadoacerto.com.br bloqueia requisições sem o header).
+        # cloudflare_ruleset.mapa_waf bloqueia na borda o que não vem do Worker).
         hostname = "api.${var.mapa_zone}"
         service  = "http://traefik.kube-system.svc.cluster.local:80"
       },
@@ -102,6 +102,26 @@ resource "cloudflare_ruleset" "mapa_redirects" {
         }
       }
     }
+  }]
+}
+
+# A API só atende o Worker do web (ADR-016 do mapa). cf.worker.upstream_zone é a zona dona
+# do Worker que fez a subrequisição, vazio para quem chega direto; o header CF-Worker não
+# serve aqui porque é acrescentado depois da WAF. /healthz fica aberto: o release do CI
+# espera por ele a revisão nova antes de publicar o web. O token do Terraform precisa de
+# Zone > Zone WAF > Edit na zona do mapa.
+resource "cloudflare_ruleset" "mapa_waf" {
+  zone_id     = var.mapa_zone_id
+  name        = "mapa waf"
+  description = "Regras de WAF da zona ${var.mapa_zone}"
+  kind        = "zone"
+  phase       = "http_request_firewall_custom"
+
+  rules = [{
+    ref         = "api_only_worker"
+    description = "api.${var.mapa_zone} só para o Worker do web"
+    expression  = "(http.host eq \"api.${var.mapa_zone}\" and cf.worker.upstream_zone ne \"${var.mapa_zone}\" and http.request.uri.path ne \"/healthz\")"
+    action      = "block"
   }]
 }
 
