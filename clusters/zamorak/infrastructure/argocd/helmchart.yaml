@@ -28,6 +28,11 @@ spec:
     configs:
       params:
         server.insecure: true
+      # Webhook do GitHub (push → refresh na hora, sem esperar o polling de 180 s). O valor
+      # é uma referência: o segredo fica no Secret argocd-webhook (secrets.yaml, KSOPS).
+      # No Cloudflare, /api/webhook tem bypass no Access (terraform/cloudflare/main.tf).
+      secret:
+        githubSecret: "$argocd-webhook:github"
       cm:
         url: https://argocd.ftm.dev.br
         timeout.reconciliation: 180s
