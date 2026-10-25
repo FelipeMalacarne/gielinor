@@ -50,6 +50,13 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "zamorak_tunnel_confi
         service  = "http://traefik.kube-system.svc.cluster.local:80"
       },
       {
+        # Só o /healthz da API do mapa (o Ingress do mapa só roteia esse caminho neste host),
+        # fora da zona do mapa: lá o Bot Fight Mode barra o curl do release do CI e não
+        # aceita exceção no plano Free.
+        hostname = "mapa-healthz.${var.zone}"
+        service  = "http://traefik.kube-system.svc.cluster.local:80"
+      },
+      {
         service = "http_status:404"
       }
     ]
@@ -64,6 +71,16 @@ resource "cloudflare_dns_record" "mapa_api_dns" {
   ttl     = 1
   proxied = true
   comment = "[terraform] zamorak mapa-do-acerto api"
+}
+
+resource "cloudflare_dns_record" "mapa_healthz_dns" {
+  zone_id = var.zone_id
+  name    = "mapa-healthz.${var.zone}"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.zamorak_tunnel.id}.cfargotunnel.com"
+  type    = "CNAME"
+  ttl     = 1
+  proxied = true
+  comment = "[terraform] zamorak mapa-do-acerto api /healthz (release do CI)"
 }
 
 # O apex é custom domain do Worker mapa-web (wrangler.jsonc no repo do mapa). O `www` só
@@ -107,8 +124,8 @@ resource "cloudflare_ruleset" "mapa_redirects" {
 
 # A API só atende o Worker do web (ADR-016 do mapa). cf.worker.upstream_zone é a zona dona
 # do Worker que fez a subrequisição, vazio para quem chega direto; o header CF-Worker não
-# serve aqui porque é acrescentado depois da WAF. /healthz fica aberto: o release do CI
-# espera por ele a revisão nova antes de publicar o web. O token do Terraform precisa de
+# serve aqui porque é acrescentado depois da WAF. O release do CI lê o /healthz por
+# mapa-healthz.ftm.dev.br, então aqui não há exceção. O token do Terraform precisa de
 # Zone > Zone WAF > Edit na zona do mapa.
 resource "cloudflare_ruleset" "mapa_waf" {
   zone_id     = var.mapa_zone_id
@@ -120,7 +137,7 @@ resource "cloudflare_ruleset" "mapa_waf" {
   rules = [{
     ref         = "api_only_worker"
     description = "api.${var.mapa_zone} só para o Worker do web"
-    expression  = "(http.host eq \"api.${var.mapa_zone}\" and cf.worker.upstream_zone ne \"${var.mapa_zone}\" and http.request.uri.path ne \"/healthz\")"
+    expression  = "(http.host eq \"api.${var.mapa_zone}\" and cf.worker.upstream_zone ne \"${var.mapa_zone}\")"
     action      = "block"
   }]
 }
