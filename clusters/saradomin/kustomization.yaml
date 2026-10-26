@@ -20,7 +20,7 @@ resources:
   - apps/filebrowser
   # - apps/docling
   # Ligar depois dos passos do README do lastro (Access no Terraform e o AUD no secrets.yaml).
-  # - apps/lastro
+  - apps/lastro
 
 labels:
   - pairs:
