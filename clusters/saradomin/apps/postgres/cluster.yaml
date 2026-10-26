@@ -1,0 +1,44 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-main
+spec:
+  description: "Main PostgreSQL cluster for Saradomin"
+  instances: 1
+  # Mesma versão maior do Postgres de desenvolvimento dos apps (compose e shell do Nix do lastro).
+  imageName: ghcr.io/cloudnative-pg/postgresql:17
+
+  # Um role por app, com a senha num Secret deste diretório (secrets.yaml). O app guarda a
+  # mesma senha na URL de conexão do próprio Secret dele. Como adicionar um app: README.md.
+  managed:
+    roles:
+      - name: lastro
+        ensure: present
+        login: true
+        passwordSecret:
+          name: lastro-db-secret
+
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "256MB"
+      effective_cache_size: "1GB"
+      maintenance_work_mem: "64MB"
+      checkpoint_completion_target: "0.9"
+      wal_compression: "on"
+      log_min_duration_statement: "1000"
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+  monitoring:
+    enablePodMonitor: false
+
+  storage:
+    size: 20Gi
+    storageClass: local-path
