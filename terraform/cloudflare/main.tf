@@ -256,6 +256,10 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "saradomin_tunnel_con
         service  = "http://traefik.networking.svc.cluster.local:80"
       },
       {
+        hostname = "lastro.${var.zone}"
+        service  = "http://traefik.networking.svc.cluster.local:80"
+      },
+      {
         service = "http_status:404"
       }
     ]
@@ -300,4 +304,39 @@ resource "cloudflare_dns_record" "seerr_saradomin_dns" {
   ttl     = 1
   proxied = true
   comment = "[terraform] saradomin seerr"
+}
+
+resource "cloudflare_dns_record" "lastro_saradomin_dns" {
+  zone_id = var.zone_id
+  name    = "lastro.${var.zone}"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.saradomin_tunnel.id}.cfargotunnel.com"
+  type    = "CNAME"
+  ttl     = 1
+  proxied = true
+  comment = "[terraform] saradomin lastro"
+}
+
+# O lastro confere o JWT do Access em toda rota (menos /healthz e /readyz, que só o kubelet usa).
+# O AUD deste app vai para LASTRO_CF_ACCESS_AUD em clusters/saradomin/apps/lastro/secrets.yaml
+# (output lastro_access_aud). SameSite lax, e não strict como no Argo CD, para que um link vindo de
+# fora (um alerta por email, por exemplo) abra o app já logado.
+resource "cloudflare_zero_trust_access_application" "lastro" {
+  account_id                 = var.account_id
+  name                       = "Saradomin lastro"
+  domain                     = "lastro.${var.zone}"
+  type                       = "self_hosted"
+  session_duration           = "24h"
+  http_only_cookie_attribute = true
+  same_site_cookie_attribute = "lax"
+
+  policies = [{
+    name       = "Allow Felipe"
+    precedence = 1
+    decision   = "allow"
+    include = [{
+      email = {
+        email = "felipemalacarne012@gmail.com"
+      }
+    }]
+  }]
 }

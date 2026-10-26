@@ -17,6 +17,8 @@ resources:
   - apps/aerofoil
   - apps/filebrowser
   # - apps/docling
+  # Ligar depois dos passos do README do lastro (Access no Terraform e o AUD no secrets.yaml).
+  # - apps/lastro
 
 labels:
   - pairs:
