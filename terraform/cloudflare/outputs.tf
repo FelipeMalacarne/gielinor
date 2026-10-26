@@ -13,3 +13,8 @@ output "saradomin_tunnel_token" {
   sensitive   = true
   description = "Saradomin Cloudflare tunnel token"
 }
+
+output "lastro_access_aud" {
+  value       = cloudflare_zero_trust_access_application.lastro.aud
+  description = "AUD do app do Access do lastro (LASTRO_CF_ACCESS_AUD)"
+}
