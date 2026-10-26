@@ -12,6 +12,8 @@ resources:
   - infrastructure/tailscale
   - infrastructure/cloudflared
   - infrastructure/argocd
+  - infrastructure/cnpg
+  - apps/postgres
   # - apps/openclaw
   - apps/media
   - apps/aerofoil

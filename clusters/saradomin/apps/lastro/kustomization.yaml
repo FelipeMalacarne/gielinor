@@ -4,10 +4,10 @@ kind: Kustomization
 # lastro: o que é do cluster. Como o app roda (Deployment com a migration no initContainer,
 # Service, Ingress, CronJob do sync) vive no repositório do lastro (deploy/k8s), apontado pela
 # Application abaixo e atualizado pelo CI dele a cada merge na `main`.
-# Sem `namespace:` aqui: a Application fica em argocd; o Postgres e os Secrets em lastro.
+# O banco é o `lastro` do postgres-main compartilhado (apps/postgres), não um Postgres próprio.
+# Sem `namespace:` aqui: a Application fica em argocd e o Secret do app em lastro.
 resources:
   - application.yaml
-  - postgres.yaml
 
 generators:
   - ksops.yaml
