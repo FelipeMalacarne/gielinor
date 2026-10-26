@@ -1,0 +1,13 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: postgres-main-lastro
+spec:
+  cluster:
+    name: postgres-main
+
+  # O lastro cria um schema por módulo nas próprias migrations; ser dono do banco basta.
+  name: lastro
+  owner: lastro
+
+  databaseReclaimPolicy: retain
