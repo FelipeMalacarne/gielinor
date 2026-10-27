@@ -10,7 +10,7 @@ resources:
 generators:
   - ksops.yaml
 
-# Backup no R2 (WAL contínuo e um backup base por dia). Descomente depois dos passos de
-# backup/README.md: sem bucket e credenciais, o WAL que não sai acumula no disco.
-# components:
-#   - backup
+# Backup no R2 (WAL contínuo e um backup base por dia): backup/README.md. Se o
+# arquivamento quebrar, o WAL que não sai acumula no disco; comentar desliga.
+components:
+  - backup

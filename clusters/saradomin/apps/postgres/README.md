@@ -13,5 +13,5 @@ Para conectar, use `postgres-main-rw.databases.svc:5432`, com `sslmode=require`:
 
 ## Pendências
 
-- **Backup:** pronto para ligar, em `backup/` (WAL contínuo e um backup base por dia no R2, 30 dias de janela). Falta criar o bucket e o token do R2 e ligar o componente: `backup/README.md`. Faça isso antes de o lastro sincronizar contas reais.
+- **Backup:** ligado, em `backup/`: WAL contínuo e um backup base por dia no bucket `gielinor-postgres-backups` do R2, com 30 dias de janela. Como conferir e restaurar: `backup/README.md`.
 - **Primeiro `make apply`:** o `Cluster` e o `Database` dependem dos CRDs que o operador instala, então o primeiro apply manual pode falhar neles. Rode de novo depois que o operador subir. O Argo resolve isso sozinho, com o retry e o `SkipDryRunOnMissingResource` do `saradomin-root`.
