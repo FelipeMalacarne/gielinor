@@ -24,6 +24,23 @@ Este diretório é um componente do Kustomize, ligado e desligado inteiro em `..
 
    `ContinuousArchiving` deve estar `True` e o backup `postgres-main-daily-…` em `completed`. No bucket aparece `postgres-main/wals/` e `postgres-main/base/`.
 
+O backup imediato pode sair antes de a instância reiniciar com o sidecar e falhar com `requested plugin is not available: barman-cloud.cloudnative-pg.io` (foi o que aconteceu na primeira vez). O `ScheduledBackup` não tenta de novo até o horário diário; com o `ContinuousArchiving` já em `True`, peça um backup à mão:
+
+```sh
+kubectl --context=saradomin -n databases create -f - <<'YAML'
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  generateName: postgres-main-manual-
+spec:
+  cluster:
+    name: postgres-main
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+YAML
+```
+
 O plugin precisa estar rodando antes do passo 4: `kubectl --context=saradomin -n databases rollout status deploy/barman-cloud`. Ele sobe sozinho com `infrastructure/cnpg`.
 
 ## Se o arquivamento falhar
