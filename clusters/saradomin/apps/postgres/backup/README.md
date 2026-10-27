@@ -6,7 +6,7 @@ Este diretório é um componente do Kustomize, ligado e desligado inteiro em `..
 
 - `objectstore.yaml`: o bucket, o endpoint da conta e a retenção;
 - `cluster-plugin.yaml`: o patch que liga o plugin no `Cluster` como arquivador do WAL;
-- `scheduledbackup.yaml`: o backup base diário (e um logo ao ligar);
+- `scheduledbackup.yaml`: o backup base diário;
 - `secrets.yaml`: as credenciais do R2, criptografadas com SOPS.
 
 ## Ligar (uma vez)
@@ -14,7 +14,7 @@ Este diretório é um componente do Kustomize, ligado e desligado inteiro em `..
 1. **Bucket.** No painel da Cloudflare, em R2, crie o bucket `gielinor-postgres-backups` (localização automática). Ele fica fora do Terraform, como o `gielinor-tfstate` e o `mapa-do-acerto`.
 2. **Token.** Em R2 › Manage API tokens › Create API token: permissão **Object Read & Write**, aplicada só ao bucket `gielinor-postgres-backups`, sem expiração. Guarde o *Access Key ID* e o *Secret Access Key* que aparecem no fim (o segredo só aparece uma vez).
 3. **Segredos.** `sops clusters/saradomin/apps/postgres/backup/secrets.yaml` e troque os dois `CHANGE_ME` pelo par do passo 2.
-4. **Ligar.** Descomente `components: [backup]` em `../kustomization.yaml` e faça o merge. O Argo aplica o `ObjectStore`, o `ScheduledBackup` e o patch no `Cluster`; o operador reinicia a instância com o sidecar do plugin (alguns segundos fora do ar) e o primeiro backup base começa em seguida.
+4. **Ligar.** Descomente `components: [backup]` em `../kustomization.yaml` e faça o merge. O Argo aplica o `ObjectStore`, o `ScheduledBackup` e o patch no `Cluster`; o operador reinicia a instância com o sidecar do plugin (alguns segundos fora do ar) e o WAL passa a ser arquivado. O primeiro backup base sai no horário diário; para não esperar, depois que o arquivamento estiver ligado: `kubectl --context=saradomin cnpg backup postgres-main -n databases -m plugin --plugin-name barman-cloud.cloudnative-pg.io`.
 5. **Conferir.**
 
    ```sh
@@ -22,24 +22,7 @@ Este diretório é um componente do Kustomize, ligado e desligado inteiro em `..
    kubectl --context=saradomin -n databases get backups
    ```
 
-   `ContinuousArchiving` deve estar `True` e o backup `postgres-main-daily-…` em `completed`. No bucket aparece `postgres-main/wals/` e `postgres-main/base/`.
-
-O backup imediato pode sair antes de a instância reiniciar com o sidecar e falhar com `requested plugin is not available: barman-cloud.cloudnative-pg.io` (foi o que aconteceu na primeira vez). O `ScheduledBackup` não tenta de novo até o horário diário; com o `ContinuousArchiving` já em `True`, peça um backup à mão:
-
-```sh
-kubectl --context=saradomin -n databases create -f - <<'YAML'
-apiVersion: postgresql.cnpg.io/v1
-kind: Backup
-metadata:
-  generateName: postgres-main-manual-
-spec:
-  cluster:
-    name: postgres-main
-  method: plugin
-  pluginConfiguration:
-    name: barman-cloud.cloudnative-pg.io
-YAML
-```
+   `ContinuousArchiving` deve estar `True` e o backup em `completed`. No bucket aparece `postgres-main/wals/` e `postgres-main/base/`.
 
 O plugin precisa estar rodando antes do passo 4: `kubectl --context=saradomin -n databases rollout status deploy/barman-cloud`. Ele sobe sozinho com `infrastructure/cnpg`.
 
