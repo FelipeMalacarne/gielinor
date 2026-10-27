@@ -332,28 +332,3 @@ resource "cloudflare_dns_record" "auth_saradomin_dns" {
   proxied = true
   comment = "[terraform] saradomin zitadel"
 }
-
-# O lastro confere o JWT do Access em toda rota (menos /healthz e /readyz, que só o kubelet usa).
-# O AUD deste app vai para LASTRO_CF_ACCESS_AUD em clusters/saradomin/apps/lastro/secrets.yaml
-# (output lastro_access_aud). SameSite lax, e não strict como no Argo CD, para que um link vindo de
-# fora (um alerta por email, por exemplo) abra o app já logado.
-resource "cloudflare_zero_trust_access_application" "lastro" {
-  account_id                 = var.account_id
-  name                       = "Saradomin lastro"
-  domain                     = "lastro.${var.zone}"
-  type                       = "self_hosted"
-  session_duration           = "24h"
-  http_only_cookie_attribute = true
-  same_site_cookie_attribute = "lax"
-
-  policies = [{
-    name       = "Allow Felipe"
-    precedence = 1
-    decision   = "allow"
-    include = [{
-      email = {
-        email = "felipemalacarne012@gmail.com"
-      }
-    }]
-  }]
-}

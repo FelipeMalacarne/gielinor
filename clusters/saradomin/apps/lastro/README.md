@@ -13,21 +13,15 @@ O namespace `lastro` está em `../../namespaces.yaml`, junto dos outros.
 
 ## Ativar (uma vez)
 
-1. **Cloudflare.** `make tf-plan` e `make tf-apply` criam a regra `lastro.ftm.dev.br` no túnel do saradomin, o CNAME e o app do Access, liberado só para felipemalacarne012@gmail.com. Depois leia o AUD:
+1. **Cloudflare.** `make tf-plan` e `make tf-apply` criam a regra `lastro.ftm.dev.br` no túnel do saradomin e o CNAME. Não há Cloudflare Access na frente: quem entra é decidido pelo próprio lastro, com o Zitadel de `../zitadel` (ADR-0008 do lastro). O túnel e o WAF da Cloudflare continuam.
 
-   ```sh
-   . ./r2-secrets.sh && terraform -chdir=terraform output -raw lastro_access_aud
-   ```
+2. **Segredos.** Abra `sops clusters/saradomin/apps/lastro/secrets.yaml`. As variáveis `LASTRO_OIDC_*`, `LASTRO_PUBLIC_URL` e `LASTRO_SESSION_KEY` vêm do projeto `lastro` no Zitadel, como no `docs/zitadel.md` do lastro.
 
-2. **Segredos.** Abra `sops clusters/saradomin/apps/lastro/secrets.yaml` e troque os dois `CHANGE_ME` de `lastro-secrets`:
-   - `LASTRO_CF_ACCESS_TEAM_DOMAIN`: o domínio do time do Zero Trust (`<time>.cloudflareaccess.com`, em Zero Trust › Settings › Team name).
-   - `LASTRO_CF_ACCESS_AUD`: a saída do passo 1.
-
-   A senha do banco já foi gerada. Ela está na `LASTRO_DATABASE_URL` e no `lastro-db-secret` de `../postgres/secrets.yaml`: não mude uma sem a outra. Pluggy e Ollama ficam vazios até o M1 do lastro.
+   A senha do banco já foi gerada. Ela está na `LASTRO_DATABASE_URL` e no `lastro-db-secret` de `../postgres/secrets.yaml`: não mude uma sem a outra.
 
 3. **Ligar.** Descomente `apps/lastro` em `clusters/saradomin/kustomization.yaml`. O `saradomin-root` do Argo cria a `Application` e o Secret, e a `Application` sobe o app. Sem o Argo, use `make apply CLUSTER=saradomin`. O `postgres-main` e o banco `lastro` já sobem antes, junto com `apps/postgres`.
 
-4. **Conferir.** `kubectl --context=saradomin -n databases get cluster,database` deve mostrar o `postgres-main` saudável e o `Database` `postgres-main-lastro` aplicado. `kubectl --context=saradomin -n lastro get pods` deve mostrar o `lastro-…` pronto. Depois abra `https://lastro.ftm.dev.br`: o Access pede o login e, em seguida, a página mostra "Signed in as felipemalacarne012@gmail.com".
+4. **Conferir.** `kubectl --context=saradomin -n databases get cluster,database` deve mostrar o `postgres-main` saudável e o `Database` `postgres-main-lastro` aplicado. `kubectl --context=saradomin -n lastro get pods` deve mostrar o `lastro-…` pronto. Depois abra `https://lastro.ftm.dev.br`: o lastro manda para o login do Zitadel e volta com a sessão.
 
 ## Sincronizar com o Meu Pluggy (M1 do lastro)
 

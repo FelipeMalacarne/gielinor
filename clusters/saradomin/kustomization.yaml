@@ -19,7 +19,7 @@ resources:
   - apps/aerofoil
   - apps/filebrowser
   # - apps/docling
-  # Ligar depois dos passos do README do lastro (Access no Terraform e o AUD no secrets.yaml).
+  # Passos de ativação no README do lastro (túnel no Terraform e o OIDC no secrets.yaml).
   - apps/lastro
   # Provedor OIDC em auth.ftm.dev.br; o que fazer depois do primeiro deploy: apps/zitadel/README.md.
   - apps/zitadel
