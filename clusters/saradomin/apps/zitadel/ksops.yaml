@@ -1,0 +1,12 @@
+apiVersion: viaduct.ai/v1
+kind: ksops
+metadata:
+  name: zitadel-secrets
+  annotations:
+    config.kubernetes.io/function: |
+      exec:
+        path: ksops
+files:
+  # zitadel-secret-values (senha do banco e a inicial do admin), zitadel-masterkey e
+  # zitadel-login-session-cookie.
+  - secrets.yaml

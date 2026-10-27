@@ -11,3 +11,17 @@ spec:
   owner: lastro
 
   databaseReclaimPolicy: retain
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: postgres-main-zitadel
+spec:
+  cluster:
+    name: postgres-main
+
+  # O init job do Zitadel (fase zitadel) cria os schemas dele; ser dono do banco basta.
+  name: zitadel
+  owner: zitadel
+
+  databaseReclaimPolicy: retain
