@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - helmchart.yaml
+  - plugin-barman-cloud.yaml
 
 secretGenerator:
   - name: cloudnative-pg-values

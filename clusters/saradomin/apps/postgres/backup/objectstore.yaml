@@ -1,0 +1,44 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: r2-backups
+  annotations:
+    # O CRD vem do plugin (HelmChart em infrastructure/cnpg), que o helm-controller do
+    # K3s instala depois do primeiro sync.
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  configuration:
+    # Cada cluster ganha uma pasta com o nome dele: s3://gielinor-postgres-backups/postgres-main/
+    destinationPath: s3://gielinor-postgres-backups/
+    endpointURL: https://0eba569b4bb5e3bb00cdeae6772f44d8.r2.cloudflarestorage.com
+    s3Credentials:
+      accessKeyId:
+        name: r2-backup-credentials
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: r2-backup-credentials
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+      jobs: 2
+
+  # Janela de recuperação: qualquer ponto dos últimos 30 dias. Backups mais velhos que o
+  # primeiro necessário para isso são apagados depois do backup seguinte.
+  retentionPolicy: "30d"
+
+  instanceSidecarConfiguration:
+    # O boto3 recente calcula checksums que nem todo S3 compatível aceita; a documentação
+    # do plugin recomenda isto quando aparece o erro de x-amz-content-sha256.
+    env:
+      - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        value: when_required
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        memory: 256Mi

@@ -1,0 +1,11 @@
+# Liga o arquivamento do WAL e os backups do postgres-main no ObjectStore r2-backups.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-main
+spec:
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: r2-backups

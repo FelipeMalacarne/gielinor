@@ -29,7 +29,25 @@ O namespace `lastro` está em `../../namespaces.yaml`, junto dos outros.
 
 4. **Conferir.** `kubectl --context=saradomin -n databases get cluster,database` deve mostrar o `postgres-main` saudável e o `Database` `postgres-main-lastro` aplicado. `kubectl --context=saradomin -n lastro get pods` deve mostrar o `lastro-…` pronto. Depois abra `https://lastro.ftm.dev.br`: o Access pede o login e, em seguida, a página mostra "Signed in as felipemalacarne012@gmail.com".
 
-## Pendências
+## Sincronizar com o Meu Pluggy (M1 do lastro)
 
-- **Backup do Postgres:** ainda não existe. Antes de sincronizar contas reais (M1 do lastro), ligue o Barman para o R2 no `postgres-main` (ver `../postgres/README.md`).
+O CronJob `lastro-sync` roda `lastro sync` quatro vezes por dia e precisa das credenciais do Pluggy. Até elas existirem, cada execução termina com erro (`set LASTRO_PLUGGY_CLIENT_ID…`), sem efeito nenhum.
+
+1. **Backup primeiro.** Ligue o backup do `postgres-main` (`../postgres/backup/README.md`) antes de entrar dado real.
+2. **Credenciais.** No [Pluggy Dashboard](https://dashboard.pluggy.ai), em Applications, copie o *Client ID* e gere um *Client Secret*. Em Applications › a aplicação › Demo › Connect Account, escolha **MeuPluggy** e entre com a conta do Meu Pluggy: cada banco conectado lá vira um item. Copie o id de cada item.
+3. **Segredos.** `sops clusters/saradomin/apps/lastro/secrets.yaml` e acrescente em `lastro-secrets`:
+   - `LASTRO_PLUGGY_CLIENT_ID` e `LASTRO_PLUGGY_CLIENT_SECRET`, do passo 2;
+   - `LASTRO_PLUGGY_ITEM_IDS`: os ids dos itens, separados por vírgula (a API do Meu Pluggy não lista itens).
+4. **Conferir.** Rode um sync agora, sem esperar o horário:
+
+   ```sh
+   kubectl --context=saradomin -n lastro create job --from=cronjob/lastro-sync lastro-sync-now
+   kubectl --context=saradomin -n lastro logs -f job/lastro-sync-now
+   ```
+
+   A saída tem uma linha por banco, com contas e transações importadas. O primeiro sync de cada item lê o histórico inteiro (até 12 meses). Depois, `https://lastro.ftm.dev.br` mostra as contas e as transações.
+
+A autorização do Meu Pluggy vale um ano. Duas semanas antes de acabar, o lastro avisa na tela; para renovar, repita o Connect Account do passo 2.
+
+## Pendências
 - **Ollama:** `LASTRO_OLLAMA_URL` está vazio, então o lastro só usa regras. Quando a categorização chegar, aponte para o zaros por um endereço que o saradomin alcance.

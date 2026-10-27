@@ -1,0 +1,16 @@
+# Backup do postgres-main no R2: WAL contínuo e um backup base por dia, guardados por 30 dias.
+# É um componente para ligar e desligar inteiro, porque o Cluster só pode arquivar o WAL
+# depois que o bucket e as credenciais existem: com o arquivamento falhando, o Postgres
+# guarda o WAL no disco até encher o volume. Como ligar: README.md.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - objectstore.yaml
+  - scheduledbackup.yaml
+
+generators:
+  - ksops.yaml
+
+patches:
+  - path: cluster-plugin.yaml

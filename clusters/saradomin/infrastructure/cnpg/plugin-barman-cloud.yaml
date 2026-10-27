@@ -1,0 +1,23 @@
+# Plugin Barman Cloud (CNPG-I): arquiva o WAL e faz os backups base num object store.
+# Substitui o `barmanObjectStore` nativo do Cluster, obsoleto desde o CNPG 1.26.
+# Precisa ficar no namespace do operador (databases) e usa o cert-manager
+# (../cert-manager) para os certificados do mTLS entre ele e as instâncias.
+# Quem liga o backup de um cluster é o componente ../../apps/postgres/backup.
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: plugin-barman-cloud
+  namespace: databases
+spec:
+  repo: https://cloudnative-pg.github.io/charts
+  chart: plugin-barman-cloud
+  version: 0.8.1
+  targetNamespace: databases
+  createNamespace: false
+  valuesContent: |-
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 128Mi

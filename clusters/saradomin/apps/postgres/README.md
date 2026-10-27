@@ -13,5 +13,5 @@ Para conectar, use `postgres-main-rw.databases.svc:5432`, com `sslmode=require`:
 
 ## Pendências
 
-- **Backup:** ainda não existe. Antes de guardar dados que não podem se perder (as contas do lastro, a partir do M1 dele), ligue o Barman para o R2 neste `Cluster`.
+- **Backup:** pronto para ligar, em `backup/` (WAL contínuo e um backup base por dia no R2, 30 dias de janela). Falta criar o bucket e o token do R2 e ligar o componente: `backup/README.md`. Faça isso antes de o lastro sincronizar contas reais.
 - **Primeiro `make apply`:** o `Cluster` e o `Database` dependem dos CRDs que o operador instala, então o primeiro apply manual pode falhar neles. Rode de novo depois que o operador subir. O Argo resolve isso sozinho, com o retry e o `SkipDryRunOnMissingResource` do `saradomin-root`.

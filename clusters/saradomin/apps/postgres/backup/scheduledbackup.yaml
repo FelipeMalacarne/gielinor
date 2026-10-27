@@ -1,0 +1,15 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: postgres-main-daily
+spec:
+  # Seis campos, com segundos, em UTC: 06:17 UTC são 03:17 em São Paulo.
+  schedule: "0 17 6 * * *"
+  # Um backup base logo ao ligar, para a janela de recuperação começar já.
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: postgres-main
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
