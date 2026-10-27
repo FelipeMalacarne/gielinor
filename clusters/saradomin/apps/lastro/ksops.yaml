@@ -8,3 +8,5 @@ metadata:
         path: ksops
 files:
   - secrets.yaml
+  # LASTRO_PLUGGY_*: um Secret à parte (lastro-pluggy), que o lastro lê por último.
+  - pluggy-secrets.yaml
