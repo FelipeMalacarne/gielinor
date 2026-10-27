@@ -1,0 +1,33 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: node-disk-pressure
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: node-disk-pressure
+      rules:
+        # /data (media) shares the root disk with k3s; the kubelet evicts pods
+        # at nodefs.available < 5%, the same point the chart's default
+        # NodeFilesystemAlmostOutOfSpace alert fires. Warn well before that.
+        - alert: NodeRootDiskLow
+          expr: |
+            node_filesystem_avail_bytes{job="node-exporter",mountpoint="/",fstype!~"tmpfs|overlay"}
+              / node_filesystem_size_bytes{job="node-exporter",mountpoint="/",fstype!~"tmpfs|overlay"} < 0.15
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Root disk below 15% free on {{ $labels.instance }}
+            description: >-
+              {{ $value | humanizePercentage }} free. Kubelet evicts pods below 5%;
+              check /data/downloads and /data/switch/conversion-tmp.
+        - alert: KubeletDiskPressure
+          expr: kube_node_status_condition{condition="DiskPressure",status="true"} == 1
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: Node {{ $labels.node }} has DiskPressure and is evicting pods

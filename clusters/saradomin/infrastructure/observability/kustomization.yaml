@@ -10,6 +10,7 @@ resources:
   - log-volume-dashboard.yaml
   - cluster-overview-dashboard.yaml
   - telemetry-gateway.yaml
+  - disk-pressure-rules.yaml
 
 configMapGenerator:
   - name: telemetry-gateway-config
