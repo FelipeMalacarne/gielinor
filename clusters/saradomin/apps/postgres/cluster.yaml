@@ -17,6 +17,11 @@ spec:
         login: true
         passwordSecret:
           name: lastro-db-secret
+      - name: zitadel
+        ensure: present
+        login: true
+        passwordSecret:
+          name: zitadel-db-secret
 
   postgresql:
     parameters:

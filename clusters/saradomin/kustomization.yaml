@@ -21,6 +21,8 @@ resources:
   # - apps/docling
   # Ligar depois dos passos do README do lastro (Access no Terraform e o AUD no secrets.yaml).
   - apps/lastro
+  # Provedor OIDC em auth.ftm.dev.br; o que fazer depois do primeiro deploy: apps/zitadel/README.md.
+  - apps/zitadel
 
 labels:
   - pairs:

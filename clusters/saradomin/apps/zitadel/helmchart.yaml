@@ -1,0 +1,20 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: zitadel
+  namespace: security
+spec:
+  repo: https://charts.zitadel.com
+  chart: zitadel
+  # Zitadel v4.19.2 com o login v2. Ler as notas de upgrade do chart e do Zitadel antes de subir.
+  version: 10.4.0
+  targetNamespace: security
+  createNamespace: false
+  # A ordem importa: os values cifrados (senhas) entram por cima dos públicos.
+  valuesSecrets:
+    - name: zitadel-values
+      keys:
+        - values.yaml
+    - name: zitadel-secret-values
+      keys:
+        - values.yaml

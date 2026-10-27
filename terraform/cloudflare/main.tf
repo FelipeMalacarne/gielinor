@@ -260,6 +260,10 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "saradomin_tunnel_con
         service  = "http://traefik.networking.svc.cluster.local:80"
       },
       {
+        hostname = "auth.${var.zone}"
+        service  = "http://traefik.networking.svc.cluster.local:80"
+      },
+      {
         service = "http_status:404"
       }
     ]
@@ -314,6 +318,19 @@ resource "cloudflare_dns_record" "lastro_saradomin_dns" {
   ttl     = 1
   proxied = true
   comment = "[terraform] saradomin lastro"
+}
+
+# Zitadel (clusters/saradomin/apps/zitadel), sem Access na frente: os clients OAuth (o CLI do
+# lastro, o conector do Claude) precisam alcançar discovery, token e device direto. O console
+# se protege com o login do próprio Zitadel.
+resource "cloudflare_dns_record" "auth_saradomin_dns" {
+  zone_id = var.zone_id
+  name    = "auth.${var.zone}"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.saradomin_tunnel.id}.cfargotunnel.com"
+  type    = "CNAME"
+  ttl     = 1
+  proxied = true
+  comment = "[terraform] saradomin zitadel"
 }
 
 # O lastro confere o JWT do Access em toda rota (menos /healthz e /readyz, que só o kubelet usa).

@@ -1,0 +1,94 @@
+# Zitadel chart values (charts.zitadel.com). As senhas estão em secrets.yaml (SOPS):
+# a do role zitadel do postgres-main e a inicial do admin, mais a masterkey e o segredo do
+# cookie do login, em Secrets próprios.
+
+zitadel:
+  configmapConfig:
+    # O túnel termina o TLS; o pod fala HTTP (h2c) com o Traefik.
+    ExternalDomain: auth.ftm.dev.br
+    ExternalPort: 443
+    ExternalSecure: true
+    TLS:
+      Enabled: false
+
+    # Banco zitadel do postgres-main (apps/postgres), dono o role zitadel. Sem credencial de
+    # superusuário: o init job roda só a fase zitadel (initJob.command abaixo).
+    Database:
+      Postgres:
+        Host: postgres-main-rw.databases.svc
+        Port: 5432
+        Database: zitadel
+        MaxOpenConns: 10
+        MaxIdleConns: 5
+        User:
+          Username: zitadel
+          SSL:
+            Mode: require
+
+    FirstInstance:
+      InstanceName: gielinor
+      DefaultLanguage: pt
+      Org:
+        Name: gielinor
+        # Sem a conta de máquina IAM_OWNER do chart (e o PAT dela num Secret do cluster).
+        Machine: null
+        Human:
+          # Um e-mail como UserName é usado como está, sem o sufixo do domínio da org.
+          UserName: felipemalacarne012@gmail.com
+          FirstName: Felipe
+          LastName: Malacarne
+          Email:
+            Address: felipemalacarne012@gmail.com
+            Verified: true
+          PreferredLanguage: pt
+          PasswordChangeRequired: true
+
+    DefaultInstance:
+      LoginPolicy:
+        AllowRegister: false
+        AllowExternalIDP: false
+
+  # Masterkey num Secret do SOPS, e não gerada pelo chart: perdê-la é perder o que o Zitadel
+  # cifra no banco, e o backup do postgres-main sozinho não basta.
+  masterkeySecretName: zitadel-masterkey
+
+# N95 com 16 GB: um pod de cada, requests baixos.
+resources:
+  requests:
+    cpu: 50m
+    memory: 192Mi
+  limits:
+    memory: 512Mi
+
+initJob:
+  command: zitadel
+
+# Só pelo túnel do saradomin (terraform/cloudflare), sem Cloudflare Access na frente: discovery,
+# token e device precisam ser públicos. O Service já vem com o serversscheme h2c para o Traefik.
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+  hosts:
+    - paths:
+        - path: /
+          pathType: Prefix
+
+login:
+  sessionCookieSecretName: zitadel-login-session-cookie
+  ingress:
+    enabled: true
+    className: traefik
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: web
+    hosts:
+      - paths:
+          - path: /ui/v2/login
+            pathType: Prefix
+  resources:
+    requests:
+      cpu: 20m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
