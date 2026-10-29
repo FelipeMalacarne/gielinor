@@ -1,0 +1,6 @@
+# Databases Mesa provisioned on postgres-main. Mesa rewrites this file, roles.yaml and ksops.yaml
+# from databases/; the files in databases/ and secrets/ are written once.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+metadata:
+  name: mesa

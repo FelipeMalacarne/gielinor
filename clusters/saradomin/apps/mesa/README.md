@@ -1,66 +1,77 @@
 # Mesa no saradomin
 
-O [Mesa](https://github.com/FelipeMalacarne/mesa) é o console SQL dos bancos dos dois clusters: um só, no saradomin, com o `postgres-main` daqui e o do zamorak lado a lado. Fica no namespace `databases`, junto dos bancos, em `https://mesa.saradomin.ftm.dev.br`.
+O [Mesa](https://github.com/FelipeMalacarne/mesa) é o console dos bancos dos dois clusters: um só, no saradomin, com o `postgres-main` daqui e o do zamorak lado a lado. Fica no namespace `databases`, em `https://mesa.saradomin.ftm.dev.br`, com login pelo Zitadel.
+
+Além de explorar, consultar e alterar (sempre com revisão), o Mesa cria o banco de um app novo de uma vez: **Users & roles › App database**. Ele cria o role e o banco na hora e commita neste repositório a declaração deles, então o Argo e o cluster continuam iguais ao Git.
 
 ```text
-navegador (LAN ou tailnet) ── Traefik websecure + login provisório ──► mesa (databases)
-                                                                         │
-     saradomin: postgres-main-rw.databases.svc:5432 ◄────────────────────┤
-                                                                         │
-     zamorak:   zamorak-postgres.databases.svc:5432 (saída Tailscale) ───┘
-                  └─► tailnet ─► zamorak-postgres (proxy) ─► postgres-main-tailnet ─► primário
+navegador (LAN ou tailnet) ── Traefik websecure ──► mesa (databases) ── login ──► Zitadel (auth.ftm.dev.br)
+                                                      │
+     saradomin: postgres-main-rw.databases.svc ◄──────┤
+     zamorak:   zamorak-postgres.databases.svc ◄──────┤  (saída Tailscale ─► tailnet ─► postgres-main-tailnet)
+                                                      │
+     GitHub: gielinor/main ◄── commits dos bancos ────┘  ──► Argo ─► CNPG + Secrets
 ```
 
 ## Como está montado
 
 - **App:** a `Application` `mesa` (`application.yaml`) aponta para o chart `charts/mesa` do repositório do Mesa, na tag do release, com a imagem da mesma versão. Os values ficam na própria `Application`.
-- **Conexões:** `saradomin` e `zamorak`, declaradas nos values (`connections`). No Mesa aparecem como *declared*: ninguém edita nem apaga pela tela, só por aqui. As duas são `production`: o Mesa só lê até alguém destravar a conexão, e cada escrita mostra o SQL e pede o nome da conexão digitado. Dá para criar outras conexões pela tela, que ficam guardadas no banco do Mesa.
-- **Role:** `mesa`, superusuário, nos dois `postgres-main` (`managed.roles` em `../postgres/cluster.yaml` e em `clusters/zamorak/apps/postgres/cluster.yaml`). Superusuário porque o Mesa administra roles, bancos e sessões dos apps; a proteção é a revisão do Mesa, não o privilégio do role.
-- **Dados do Mesa:** o banco `mesa` do `postgres-main` daqui (`../postgres/databases.yaml`): conexões criadas pela tela, auditoria de cada escrita, histórico de queries. Entra no backup do R2 com o resto.
-- **Zamorak:** o CNPG de lá publica o primário no tailnet como `zamorak-postgres` (um Service a mais do `Cluster`, `managed.services.additional`, do tipo `LoadBalancer` com a classe `tailscale`). Aqui, `zamorak-postgres.yaml` é a saída: um `ExternalName` que o operador do Tailscale aponta para o proxy dele. O TLS do Postgres vai por dentro do túnel do Tailscale; nada disso passa pela Cloudflare.
-- **Acesso:** o Ingress só existe no entrypoint `websecure` do Traefik, que só a LAN e o tailnet alcançam. O túnel da Cloudflare entrega no `web` e não tem regra para este host. Na frente, um login provisório do Traefik (`middleware.yaml`), porque o Mesa ainda não tem login próprio.
+- **Login:** pelo Zitadel (`../zitadel`). Quem entra e com que papel é decidido lá, pelos roles do projeto `mesa`: `admin` (conexões e bancos novos), `editor` (altera dados e schema, sempre revisado) e `viewer` (só lê). Sem role, não entra. O Mesa não guarda senha de ninguém. A sessão dura 12 horas; a auditoria registra o e-mail de quem fez cada escrita.
+- **Conexões:** `saradomin` e `zamorak`, declaradas nos values (`connections`). Aparecem como *declared*: ninguém edita pela tela, só aqui. As duas são `production`: o Mesa só lê até alguém destravar, e cada escrita mostra o SQL e pede o nome digitado.
+- **Role:** `mesa`, superusuário, nos dois `postgres-main` (`managed.roles` em `../postgres/cluster.yaml` e em `clusters/zamorak/apps/postgres/cluster.yaml`). A proteção é a revisão do Mesa e os papéis do Zitadel, não o privilégio do role.
+- **Dados do Mesa:** o banco `mesa` do `postgres-main` daqui (`../postgres/databases.yaml`), dentro do backup do R2.
+- **Zamorak:** o CNPG de lá publica o primário no tailnet como `zamorak-postgres` (o Service `postgres-main-tailnet` do `Cluster`); aqui, `zamorak-postgres.yaml` é a saída. Nada passa pela Cloudflare.
+- **Acesso:** o Ingress só existe no `websecure` do Traefik, que só a LAN e o tailnet alcançam.
+
+## Bancos novos para apps
+
+Em **Users & roles › App database** (só `admin`), nome do banco (`shop`) e namespace do app (`shop`). A revisão mostra o SQL e os arquivos; em produção, destrave e digite o nome. Depois de aplicar:
+
+1. O Mesa commita na `main`, em `clusters/<cluster>/apps/postgres/mesa/`:
+   - `databases/shop.yaml`: o `Database` do CNPG (`databaseReclaimPolicy: retain`);
+   - `roles.yaml`: o role `shop`, acrescentado aos `managed.roles` do `postgres-main` por um patch;
+   - `secrets/shop-secrets.yaml`, cifrado com o SOPS para a chave de `.sops.yaml`: a senha do role (`shop-db-secret`, em `databases`) e a conexão do app (`shop-db`, no namespace `shop`, com `DATABASE_URL`, `uri`, `username`, `password`, `host`, `port` e `dbname`);
+   - `kustomization.yaml` e `ksops.yaml`, que o Mesa reescreve a cada banco.
+2. O Mesa cria o role (com uma senha gerada que ninguém vê) e o banco na hora, auditados.
+3. O Argo sincroniza: o CNPG adota o role e o banco que já existem, e o Secret `shop-db` aparece no namespace `shop`. No Deployment do app basta `envFrom: [{secretRef: {name: shop-db}}]`.
+
+Se o SQL falhar depois do commit, o CNPG cria o role e o banco quando o Argo sincronizar. O namespace do app precisa existir (`../../namespaces.yaml`). O Mesa só escreve dentro de `mesa/`; os outros arquivos de `apps/postgres` continuam à mão, como os bancos que já existiam. `apps/postgres` agora põe `databases` só onde o manifesto não diz outro namespace (`namespace.yaml`), porque os Secrets dos apps vão para os namespaces deles.
+
+Para apagar: tire os dois arquivos do banco em `mesa/` (o `Database` tem `retain`: o banco continua, o CNPG deixa de cuidar). Para trocar a senha: por enquanto à mão, no `sops` do arquivo do banco.
 
 ## Segredos (`secrets.yaml`, SOPS)
 
 | Secret | O que guarda |
 |---|---|
 | `mesa-db-secret` | usuário e senha do role `mesa` daqui; o CNPG aplica no role e o Mesa lê como `MESA_SARADOMIN_PASSWORD` |
-| `mesa` | o ambiente do Mesa: `MESA_APP_KEY`, `MESA_STORE_DSN` (banco `mesa`, com a mesma senha do role) e `MESA_ZAMORAK_PASSWORD` |
-| `mesa-web-auth` | usuário e senha do login provisório do Traefik |
+| `mesa` | o ambiente do Mesa: `MESA_APP_KEY`, `MESA_STORE_DSN`, `MESA_ZAMORAK_PASSWORD`, `MESA_OIDC_CLIENT_ID`, `MESA_OIDC_CLIENT_SECRET` e `MESA_GITHUB_TOKEN` |
 
-Duas senhas aparecem em dois lugares; não mude uma sem a outra:
-
-- a do role `mesa` daqui: `mesa-db-secret` e a `MESA_STORE_DSN`;
-- a do role `mesa` do zamorak: `MESA_ZAMORAK_PASSWORD` e o `mesa-db-secret` de `clusters/zamorak/apps/postgres/mesa-secrets.yaml`.
-
-A `MESA_APP_KEY` cifra as senhas das conexões criadas pela tela. Perdê-la é perder essas senhas (as conexões declaradas não dependem dela).
-
-Para ler o login do Traefik:
-
-```sh
-sops decrypt clusters/saradomin/apps/mesa/secrets.yaml \
-  | yq 'select(.metadata.name == "mesa-web-auth").stringData'
-```
+Duas senhas aparecem em dois lugares; não mude uma sem a outra: a do role `mesa` daqui (`mesa-db-secret` e a `MESA_STORE_DSN`) e a do role `mesa` do zamorak (`MESA_ZAMORAK_PASSWORD` e o `mesa-db-secret` de `clusters/zamorak/apps/postgres/mesa-secrets.yaml`).
 
 ## Ativar (uma vez)
 
-1. **Release do Mesa.** A `Application` aponta para a tag `v0.4.0`, a primeira com as conexões declaradas e o chart que as monta. Mergeie o branch `claude/gracious-pascal-5xjw35` do Mesa e publique `0.4.0` em Actions › release › Run workflow (versão `0.4.0`, *publish* marcado). Se a versão for outra, troque `targetRevision` e `image.tag` em `application.yaml`. Antes disso a `Application` só fica com erro de sync, sem tocar em nada.
-2. **ACL do tailnet.** A saída daqui e o proxy do zamorak são `tag:k8s`. Libere a porta do Postgres entre eles, ao lado da regra da telemetria:
+1. **Release do Mesa.** A `Application` aponta para a tag `v0.4.0`. Mergeie o branch `claude/gracious-pascal-5xjw35` do Mesa e publique `0.4.0` em Actions › release › Run workflow (versão `0.4.0`, *publish* marcado). Se a versão for outra, troque `targetRevision` e `image.tag` em `application.yaml`.
+2. **Zitadel.** Em `https://auth.ftm.dev.br/ui/console`:
+   - um projeto `mesa` com os roles `admin`, `editor` e `viewer`, e **Assert Roles on Authentication** ligado;
+   - nele, uma aplicação **Web**, autenticação **Code** com client secret (Basic), redirect URI `https://mesa.saradomin.ftm.dev.br/auth/callback`;
+   - em Authorizations, o seu usuário com o role `admin` no projeto `mesa`.
+3. **GitHub.** Um token *fine-grained* com acesso só ao repositório `gielinor`: **Contents: Read and write** (e **Pull requests: Read and write** se um dia usar `pull_request: true`).
+4. **Segredos.** `sops clusters/saradomin/apps/mesa/secrets.yaml` e troque os três `CHANGE_ME`: o client ID e o client secret do passo 2 e o token do passo 3.
+5. **ACL do tailnet.** A saída daqui e o proxy do zamorak são `tag:k8s`. Libere a porta do Postgres entre eles:
 
    ```json
    {"action": "accept", "src": ["tag:k8s"], "dst": ["tag:k8s:5432"]}
    ```
 
-   Com grants, o equivalente é `{"src": ["tag:k8s"], "dst": ["tag:k8s"], "ip": ["tcp:5432"]}`.
-3. **DNS.** Se o AdGuard Home responde `*.saradomin.ftm.dev.br` por nome, e não por curinga, acrescente `mesa.saradomin.ftm.dev.br` como os outros.
-4. **Root do Argo.** O `saradomin-root` passa a ignorar o `externalName` da saída (o operador do Tailscale é quem escreve nele). A `Application` raiz não se atualiza sozinha, então aplique uma vez:
+6. **DNS.** Se o AdGuard Home responde `*.saradomin.ftm.dev.br` por nome, e não por curinga, acrescente `mesa.saradomin.ftm.dev.br`.
+7. **Root do Argo.** O `saradomin-root` passa a ignorar o `externalName` da saída (o operador do Tailscale escreve nele). Aplique uma vez:
 
    ```sh
    kubectl --context=saradomin apply -f clusters/saradomin/argocd/root-application.yaml
    ```
 
-5. **Merge na `main`.** O `zamorak-root` cria o role `mesa`, o Service `postgres-main-tailnet` e o proxy `zamorak-postgres`; o `saradomin-root` cria o role e o banco `mesa`, os Secrets, a saída e a `Application`, que sobe o Mesa.
-6. **Conferir.**
+8. **Merge na `main`.** O `zamorak-root` cria o role `mesa`, o Service `postgres-main-tailnet` e o componente `mesa` vazio; o `saradomin-root` cria o role e o banco `mesa`, os Secrets, a saída, o componente vazio e a `Application`.
+9. **Conferir.**
 
    ```sh
    kubectl --context=zamorak -n databases get svc postgres-main-tailnet
@@ -69,24 +80,23 @@ sops decrypt clusters/saradomin/apps/mesa/secrets.yaml \
    kubectl --context=saradomin -n databases rollout status deploy/mesa
    ```
 
-   O `EXTERNAL-IP` do `postgres-main-tailnet` é o endereço no tailnet, e `zamorak-postgres` aparece em Machines com `tag:k8s`. O `externalName` deixa de ser `placeholder`. Em `https://mesa.saradomin.ftm.dev.br`, depois do login, as duas conexões abrem; *Test connection* mostra a latência até cada uma.
+   Em `https://mesa.saradomin.ftm.dev.br`: **Sign in with Zitadel**, e as duas conexões abrem. Em Settings › Account aparece o papel `admin`.
 
 ## Agentes (MCP)
 
-O Mesa serve as mesmas ferramentas do `mesa-mcp` em `/mcp`, só leitura (`MESA_MCP_WRITES` desligado). Com o login provisório, o cliente manda o cabeçalho:
+O Mesa serve as ferramentas do `mesa-mcp` em `/mcp`, só leitura (`MESA_MCP_WRITES` desligado). Crie um token em Settings › API tokens; ele age com o seu papel:
 
 ```json
 { "mcpServers": { "mesa": { "url": "https://mesa.saradomin.ftm.dev.br/mcp",
-  "headers": { "Authorization": "Basic <base64 de usuario:senha>" } } } }
+  "headers": { "Authorization": "Bearer mesa_…" } } } }
 ```
 
 ## Atualizar
 
-Troque `targetRevision` (`vX.Y.Z`) e `image.tag` (`X.Y.Z`) juntos em `application.yaml`. O chart e a imagem saem do mesmo release.
+Troque `targetRevision` (`vX.Y.Z`) e `image.tag` (`X.Y.Z`) juntos em `application.yaml`.
 
 ## Pendências
 
-- **Login no Mesa.** OIDC com o Zitadel (`../zitadel`), com quem entrou registrado na auditoria. Quando existir, sai o `middleware.yaml` e o `mesa-web-auth`.
-- **CloudNativePG no Mesa.** O ADR 0010 do Mesa propõe ler os `Cluster` do CNPG pelo ServiceAccount (as conexões aparecem sozinhas), mostrar instâncias, WAL e backups do R2, respeitar os roles e `Database` declarados aqui, e fazer backup sob demanda e restore pelo próprio Mesa. Para o zamorak, um `mesa-agent` lá dentro que liga para cá, no lugar da exposição pelo tailnet.
-- **TLS verificado.** As duas conexões usam `require` (cifra sem conferir o certificado; para o zamorak, o Tailscale já autentica as pontas). Com o CA do CNPG (`postgres-main-ca`) dá para subir para `verify-full` na local.
-- **Tag própria no tailnet.** Hoje qualquer `tag:k8s` alcança a 5432 do proxy. Uma tag só para ele (`tailscale.com/tags` no Service) e outra para a saída daqui estreitam a ACL.
+- **CloudNativePG no Mesa.** O ADR 0010 do Mesa propõe mostrar instâncias, WAL e backups do R2, fazer backup sob demanda e restore pelo Mesa, e um `mesa-agent` no zamorak no lugar da exposição pelo tailnet.
+- **Trocar a senha de um banco provisionado** pelo Mesa (hoje à mão, no `sops`).
+- **TLS verificado** nas conexões (`verify-full` com o CA do CNPG) e **uma tag própria** no tailnet para o proxy do Postgres.

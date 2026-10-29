@@ -21,10 +21,13 @@ spec:
 
         config:
           # O Secret inteiro vira ambiente: MESA_APP_KEY, MESA_STORE_DSN (o banco mesa do
-          # postgres-main, com a senha) e MESA_ZAMORAK_PASSWORD. Está em secrets.yaml.
+          # postgres-main, com a senha), MESA_ZAMORAK_PASSWORD, MESA_OIDC_CLIENT_ID e
+          # MESA_OIDC_CLIENT_SECRET (o app mesa no Zitadel) e MESA_GITHUB_TOKEN (para o Mesa
+          # commitar neste repositório). Está em secrets.yaml.
           existingSecret: mesa
           store: postgres
           storeDSN: ""
+          publicURL: https://mesa.saradomin.ftm.dev.br
           extraEnv:
             # A senha do role mesa daqui vem direto do Secret que o CNPG usa para o role.
             - name: MESA_SARADOMIN_PASSWORD
@@ -33,8 +36,17 @@ spec:
                   name: mesa-db-secret
                   key: password
 
+        # Login pelo Zitadel (../zitadel): quem entra e com que papel (admin, editor ou viewer)
+        # são os roles do projeto mesa lá. Sem senha no Mesa.
+        oidc:
+          issuer: https://auth.ftm.dev.br
+          label: Zitadel
+          scopes: urn:zitadel:iam:org:projects:roles
+
         # Aparecem no Mesa como "declared": não dá para editar por lá, só aqui. Produção só lê
-        # até alguém destravar, e cada escrita pede o nome da conexão digitado.
+        # até alguém destravar, e cada escrita pede o nome digitado. Com `gitops`, a tela
+        # Users & roles ganha "App database": o Mesa cria role e banco na hora e commita o
+        # Database, o role e os Secrets (cifrados com o SOPS) em `path`, que o Argo aplica.
         connections:
           saradomin:
             environment: production
@@ -42,6 +54,12 @@ spec:
             user: mesa
             password: env:MESA_SARADOMIN_PASSWORD
             tls: require
+            gitops:
+              repo: FelipeMalacarne/gielinor
+              branch: main
+              path: clusters/saradomin/apps/postgres/mesa
+              cluster: postgres-main
+              namespace: databases
           zamorak:
             environment: production
             # A saída pelo tailnet de zamorak-postgres.yaml; o TLS do CNPG vai por dentro.
@@ -49,6 +67,12 @@ spec:
             user: mesa
             password: env:MESA_ZAMORAK_PASSWORD
             tls: require
+            gitops:
+              repo: FelipeMalacarne/gielinor
+              branch: main
+              path: clusters/zamorak/apps/postgres/mesa
+              cluster: postgres-main
+              namespace: databases
 
         # Só pela LAN e pelo tailnet (o Traefik do saradomin), nunca pelo túnel da Cloudflare:
         # o túnel entrega no entrypoint web, e este Ingress só existe no websecure.
@@ -59,7 +83,6 @@ spec:
           annotations:
             traefik.ingress.kubernetes.io/router.entrypoints: websecure
             traefik.ingress.kubernetes.io/router.tls: "true"
-            traefik.ingress.kubernetes.io/router.middlewares: databases-mesa-auth@kubernetescrd
 
         resources:
           requests:
