@@ -11,13 +11,13 @@ spec:
     # Repositório público: o chart charts/mesa, na tag do release. O chart e a imagem andam
     # juntos: para atualizar, troque targetRevision e image.tag pela mesma versão.
     repoURL: https://github.com/FelipeMalacarne/mesa.git
-    targetRevision: v0.4.0
+    targetRevision: v0.5.0
     path: charts/mesa
     helm:
       releaseName: mesa
       valuesObject:
         image:
-          tag: "0.4.0"
+          tag: "0.5.0"
 
         config:
           # O Secret inteiro vira ambiente: MESA_APP_KEY, MESA_STORE_DSN (o banco mesa do

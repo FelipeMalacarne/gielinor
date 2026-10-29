@@ -50,7 +50,7 @@ Duas senhas aparecem em dois lugares; não mude uma sem a outra: a do role `mesa
 
 ## Ativar (uma vez)
 
-1. **Release do Mesa.** A `Application` aponta para a tag `v0.4.0`. Mergeie o branch `claude/gracious-pascal-5xjw35` do Mesa e publique `0.4.0` em Actions › release › Run workflow (versão `0.4.0`, *publish* marcado). Se a versão for outra, troque `targetRevision` e `image.tag` em `application.yaml`.
+1. **Release do Mesa.** A `Application` aponta para a tag `v0.5.0` (a `v0.4.0` saiu antes do login e do provisionamento). Mergeie o PR do Mesa e publique `0.5.0` em Actions › release › Run workflow (versão `0.5.0`, *publish* marcado). Se a versão for outra, troque `targetRevision` e `image.tag` em `application.yaml`.
 2. **Zitadel.** Em `https://auth.ftm.dev.br/ui/console`:
    - um projeto `mesa` com os roles `admin`, `editor` e `viewer`, e **Assert Roles on Authentication** ligado;
    - nele, uma aplicação **Web**, autenticação **Code** com client secret (Basic), redirect URI `https://mesa.saradomin.ftm.dev.br/auth/callback`;
