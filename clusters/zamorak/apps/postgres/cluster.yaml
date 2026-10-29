@@ -27,6 +27,33 @@ spec:
         passwordSecret:
           name: mapa-db-secret
 
+      # Mesa, o console SQL que roda no saradomin (clusters/saradomin/apps/mesa). Chega aqui
+      # pelo tailnet, pelo Service postgres-main-tailnet abaixo. Superusuário pelo mesmo motivo
+      # de lá; senha em mesa-secrets.yaml (a mesma vai na MESA_ZAMORAK_PASSWORD do saradomin).
+      - name: mesa
+        ensure: present
+        login: true
+        superuser: true
+        passwordSecret:
+          name: mesa-db-secret
+
+    # O primário publicado no tailnet como zamorak-postgres, para o Mesa do saradomin. Sem
+    # Ingress nem túnel da Cloudflare: entre os clusters o tráfego vai cifrado pelo Tailscale,
+    # e a ACL do tailnet decide quem chega (tag:k8s → tag:k8s na porta 5432). O CNPG põe a
+    # porta 5432 e o seletor do primário; o operador do Tailscale sobe o proxy.
+    services:
+      additional:
+        - selectorType: rw
+          serviceTemplate:
+            metadata:
+              name: postgres-main-tailnet
+              annotations:
+                tailscale.com/hostname: zamorak-postgres
+                tailscale.com/proxy-class: tailnet-service
+            spec:
+              type: LoadBalancer
+              loadBalancerClass: tailscale
+
   postgresql:
     parameters:
       max_connections: "100"
