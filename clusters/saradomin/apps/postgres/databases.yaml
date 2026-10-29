@@ -25,3 +25,18 @@ spec:
   owner: zitadel
 
   databaseReclaimPolicy: retain
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: postgres-main-mesa
+spec:
+  cluster:
+    name: postgres-main
+
+  # Os dados do próprio Mesa (../mesa): conexões, auditoria, histórico. As migrations dele
+  # criam as tabelas no schema public; ser dono do banco basta.
+  name: mesa
+  owner: mesa
+
+  databaseReclaimPolicy: retain

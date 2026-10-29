@@ -16,6 +16,15 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
+  # O operador do Tailscale troca o externalName da saída para o postgres do zamorak
+  # (apps/mesa/zamorak-postgres.yaml) pelo Service do proxy dele; o Argo não desfaz.
+  ignoreDifferences:
+    - group: ""
+      kind: Service
+      namespace: databases
+      name: zamorak-postgres
+      jsonPointers:
+        - /spec/externalName
   syncPolicy:
     automated:
       prune: true
@@ -29,3 +38,4 @@ spec:
     syncOptions:
       - PruneLast=true
       - SkipDryRunOnMissingResource=true
+      - RespectIgnoreDifferences=true

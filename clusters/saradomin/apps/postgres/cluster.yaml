@@ -22,6 +22,16 @@ spec:
         login: true
         passwordSecret:
           name: zitadel-db-secret
+      # Mesa, o console SQL dos dois clusters (../mesa). Superusuário para administrar roles,
+      # bancos e sessões; as escritas passam pela revisão do Mesa (produção só lê até
+      # destravar, com o nome digitado). É também dono do banco mesa, onde o Mesa guarda os
+      # próprios dados. Senha no mesa-db-secret de ../mesa/secrets.yaml.
+      - name: mesa
+        ensure: present
+        login: true
+        superuser: true
+        passwordSecret:
+          name: mesa-db-secret
 
   postgresql:
     parameters:

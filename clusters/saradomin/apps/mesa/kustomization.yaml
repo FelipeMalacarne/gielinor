@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Mesa: o console SQL dos bancos do saradomin e do zamorak. Como o app roda (Deployment,
+# Service, Ingress e o ConfigMap das conexões) vem do chart do repositório do Mesa, pela
+# Application abaixo. Aqui fica o que é do cluster: os Secrets, o login provisório na frente
+# e a saída pelo tailnet até o postgres do zamorak. O role e o banco mesa estão em
+# ../postgres. Sem `namespace:` aqui: a Application fica em argocd e o resto em databases.
+# Como ligar: README.md.
+resources:
+  - application.yaml
+  - middleware.yaml
+  - zamorak-postgres.yaml
+
+generators:
+  - ksops.yaml

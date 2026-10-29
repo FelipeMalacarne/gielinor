@@ -1,0 +1,14 @@
+# Login provisório na frente do Mesa, que ainda não tem login próprio (o plano é OIDC com o
+# Zitadel: ADR 0010 do Mesa). Usuário e senha no mesa-web-auth de secrets.yaml, um Secret
+# kubernetes.io/basic-auth que o Traefik lê como está. Fica no namespace do Ingress porque o
+# Traefik daqui não aceita middleware de outro namespace.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: mesa-auth
+  namespace: databases
+spec:
+  basicAuth:
+    secret: mesa-web-auth
+    realm: Mesa
+    removeHeader: true
