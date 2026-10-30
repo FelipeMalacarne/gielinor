@@ -23,6 +23,8 @@ resources:
   - apps/lastro
   # Provedor OIDC em auth.ftm.dev.br; o que fazer depois do primeiro deploy: apps/zitadel/README.md.
   - apps/zitadel
+  # Console SQL dos bancos do saradomin e do zamorak, só pela LAN e pelo tailnet: apps/mesa/README.md.
+  - apps/mesa
 
 labels:
   - pairs:

@@ -6,6 +6,10 @@ Para conectar, use `postgres-main-rw.databases.svc:5432`, com `sslmode=require`:
 
 ## Adicionar um app
 
+Pelo Mesa: **Users & roles › App database** cria o role e o banco e commita a declaração em `mesa/`, com o Secret `<app>-db` no namespace do app (`../mesa/README.md`). A pasta `mesa/` é só do Mesa; `namespace.yaml` põe `databases` só no que não diz outro namespace, porque esses Secrets vão para o namespace do app.
+
+À mão:
+
 1. Em `cluster.yaml`, acrescente um role em `managed.roles`, com `passwordSecret` apontando para `<app>-db-secret`.
 2. Em `databases.yaml`, acrescente um `Database` com `owner` igual ao role.
 3. Em `sops secrets.yaml`, acrescente o Secret `<app>-db-secret`, do tipo `kubernetes.io/basic-auth`, com `username`, `password` e o label `cnpg.io/reload: "true"`. Gere a senha com `openssl rand -hex 24`.

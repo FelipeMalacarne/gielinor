@@ -69,3 +69,12 @@ operator's DNS routing.
 
 See the upstream [installation guide](https://tailscale.com/docs/kubernetes-operator/install-operator)
 and [egress guide](https://tailscale.com/docs/kubernetes-operator/egress).
+
+## Services On The Tailnet
+
+`proxyclass.yaml` defines `tailnet-service`, a ProxyClass with small resource
+requests for Services published to the tailnet (`type: LoadBalancer`,
+`loadBalancerClass: tailscale`). The first one is `postgres-main-tailnet`, the
+primary of `postgres-main` as `zamorak-postgres`, which Saradomin's Mesa reaches
+through an egress Service; see `clusters/saradomin/apps/mesa/README.md`. The
+tailnet policy must allow `tag:k8s` to reach `tag:k8s` on TCP port 5432.

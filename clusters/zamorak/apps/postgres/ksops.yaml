@@ -8,3 +8,5 @@ metadata:
         path: ksops
 files:
   - secrets.yaml
+  # mesa-db-secret, a senha do role mesa (o Mesa do saradomin): um arquivo à parte.
+  - mesa-secrets.yaml

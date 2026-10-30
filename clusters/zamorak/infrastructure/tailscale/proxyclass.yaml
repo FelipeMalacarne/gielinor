@@ -1,0 +1,25 @@
+# Proxies pequenos para Services publicados no tailnet (type LoadBalancer, class tailscale),
+# como o postgres-main-tailnet de ../../apps/postgres. Sem isto o proxy sobe sem requests.
+apiVersion: tailscale.com/v1alpha1
+kind: ProxyClass
+metadata:
+  name: tailnet-service
+spec:
+  statefulSet:
+    pod:
+      tailscaleContainer:
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 192Mi
+      tailscaleInitContainer:
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi

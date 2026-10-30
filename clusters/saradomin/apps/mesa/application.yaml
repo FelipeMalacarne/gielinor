@@ -1,0 +1,108 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mesa
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # Repositório público: o chart charts/mesa, na tag do release. O chart e a imagem andam
+    # juntos: para atualizar, troque targetRevision e image.tag pela mesma versão.
+    repoURL: https://github.com/FelipeMalacarne/mesa.git
+    targetRevision: v0.5.0
+    path: charts/mesa
+    helm:
+      releaseName: mesa
+      valuesObject:
+        image:
+          tag: "0.5.0"
+
+        config:
+          # O Secret inteiro vira ambiente: MESA_APP_KEY, MESA_STORE_DSN (o banco mesa do
+          # postgres-main, com a senha), MESA_ZAMORAK_PASSWORD, MESA_OIDC_CLIENT_ID e
+          # MESA_OIDC_CLIENT_SECRET (o app mesa no Zitadel) e MESA_GITHUB_TOKEN (para o Mesa
+          # commitar neste repositório). Está em secrets.yaml.
+          existingSecret: mesa
+          store: postgres
+          storeDSN: ""
+          publicURL: https://mesa.saradomin.ftm.dev.br
+          extraEnv:
+            # A senha do role mesa daqui vem direto do Secret que o CNPG usa para o role.
+            - name: MESA_SARADOMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mesa-db-secret
+                  key: password
+
+        # Login pelo Zitadel (../zitadel): quem entra e com que papel (admin, editor ou viewer)
+        # são os roles do projeto mesa lá. Sem senha no Mesa.
+        oidc:
+          issuer: https://auth.ftm.dev.br
+          label: Zitadel
+          scopes: urn:zitadel:iam:org:projects:roles
+
+        # Aparecem no Mesa como "declared": não dá para editar por lá, só aqui. Produção só lê
+        # até alguém destravar, e cada escrita pede o nome digitado. Com `gitops`, a tela
+        # Users & roles ganha "App database": o Mesa cria role e banco na hora e commita o
+        # Database, o role e os Secrets (cifrados com o SOPS) em `path`, que o Argo aplica.
+        connections:
+          saradomin:
+            environment: production
+            host: postgres-main-rw.databases.svc
+            user: mesa
+            password: env:MESA_SARADOMIN_PASSWORD
+            tls: require
+            gitops:
+              repo: FelipeMalacarne/gielinor
+              branch: main
+              path: clusters/saradomin/apps/postgres/mesa
+              cluster: postgres-main
+              namespace: databases
+          zamorak:
+            environment: production
+            # A saída pelo tailnet de zamorak-postgres.yaml; o TLS do CNPG vai por dentro.
+            host: zamorak-postgres.databases.svc
+            user: mesa
+            password: env:MESA_ZAMORAK_PASSWORD
+            tls: require
+            gitops:
+              repo: FelipeMalacarne/gielinor
+              branch: main
+              path: clusters/zamorak/apps/postgres/mesa
+              cluster: postgres-main
+              namespace: databases
+
+        # Só pela LAN e pelo tailnet (o Traefik do saradomin), nunca pelo túnel da Cloudflare:
+        # o túnel entrega no entrypoint web, e este Ingress só existe no websecure.
+        ingress:
+          enabled: true
+          className: traefik
+          host: mesa.saradomin.ftm.dev.br
+          annotations:
+            traefik.ingress.kubernetes.io/router.entrypoints: websecure
+            traefik.ingress.kubernetes.io/router.tls: "true"
+
+        resources:
+          requests:
+            cpu: 25m
+            memory: 96Mi
+          limits:
+            cpu: 500m
+            memory: 384Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: databases
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+    syncOptions:
+      - PruneLast=true

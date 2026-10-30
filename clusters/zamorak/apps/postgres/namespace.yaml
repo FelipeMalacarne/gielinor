@@ -1,0 +1,9 @@
+# O namespace databases só onde o manifesto não diz outro: os Secrets de conexão que o Mesa
+# cria para cada app (mesa/) ficam no namespace do app. Antes era `namespace: databases` na
+# kustomization, que forçava tudo para cá.
+apiVersion: builtin
+kind: NamespaceTransformer
+metadata:
+  name: databases
+  namespace: databases
+unsetOnly: true

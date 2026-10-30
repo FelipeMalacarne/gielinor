@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - helmchart.yaml
+  - proxyclass.yaml
 
 generators:
   - ksops.yaml

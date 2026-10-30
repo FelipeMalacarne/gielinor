@@ -1,0 +1,21 @@
+# Saída pelo tailnet até o primário do postgres-main do zamorak, publicado lá como
+# zamorak-postgres (o Service postgres-main-tailnet do Cluster, em
+# clusters/zamorak/apps/postgres/cluster.yaml). O Mesa conecta em
+# zamorak-postgres.databases.svc:5432 como se fosse local.
+apiVersion: v1
+kind: Service
+metadata:
+  name: zamorak-postgres
+  namespace: databases
+  annotations:
+    tailscale.com/tailnet-fqdn: zamorak-postgres.osiris-fish.ts.net
+    tailscale.com/hostname: saradomin-zamorak-postgres-egress
+spec:
+  type: ExternalName
+  # O operador troca isto pelo Service do proxy de saída; o saradomin-root ignora o campo
+  # (ignoreDifferences em ../../argocd/root-application.yaml).
+  externalName: placeholder
+  ports:
+    - name: postgres
+      port: 5432
+      protocol: TCP
