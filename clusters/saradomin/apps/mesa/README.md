@@ -57,10 +57,10 @@ Duas senhas aparecem em dois lugares; não mude uma sem a outra: a do role `mesa
    - em Authorizations, o seu usuário com o role `admin` no projeto `mesa`.
 3. **GitHub.** Um token *fine-grained* com acesso só ao repositório `gielinor`: **Contents: Read and write** (e **Pull requests: Read and write** se um dia usar `pull_request: true`).
 4. **Segredos.** `sops clusters/saradomin/apps/mesa/secrets.yaml` e troque os três `CHANGE_ME`: o client ID e o client secret do passo 2 e o token do passo 3.
-5. **ACL do tailnet.** A saída daqui e o proxy do zamorak são `tag:k8s`. Libere a porta do Postgres entre eles:
+5. **Política do tailnet.** A saída daqui e o proxy do zamorak são `tag:k8s`, que os operadores criam, então `tag:k8s-operator` precisa ser dono da tag: `"tag:k8s": ["autogroup:admin", "tag:k8s-operator"]` em `tagOwners`. Com o grant que libera tudo (`"src": ["*"], "dst": ["*"]`), a porta já passa; se um dia ele sair, libere a porta do Postgres entre eles:
 
    ```json
-   {"action": "accept", "src": ["tag:k8s"], "dst": ["tag:k8s:5432"]}
+   {"src": ["tag:k8s"], "dst": ["tag:k8s"], "ip": ["tcp:5432"]}
    ```
 
 6. **DNS.** Se o AdGuard Home responde `*.saradomin.ftm.dev.br` por nome, e não por curinga, acrescente `mesa.saradomin.ftm.dev.br`.
