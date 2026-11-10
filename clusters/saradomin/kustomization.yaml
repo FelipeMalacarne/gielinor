@@ -25,6 +25,8 @@ resources:
   - apps/zitadel
   # Console SQL dos bancos do saradomin e do zamorak, só pela LAN e pelo tailnet: apps/mesa/README.md.
   - apps/mesa
+  # Dashboard inicial (Glance), só pela LAN e pelo tailnet: apps/glance/README.md.
+  - apps/glance
 
 labels:
   - pairs:

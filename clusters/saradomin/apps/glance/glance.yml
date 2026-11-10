@@ -1,0 +1,136 @@
+# Configuração do Glance (https://github.com/glanceapp/glance/blob/main/docs/configuration.md).
+# O kustomization gera o ConfigMap com hash no nome, então qualquer mudança aqui
+# reinicia o pod no próximo `make apply CLUSTER=saradomin`.
+#
+# Os checks do monitor vão direto nos Services do cluster (o Glance não resolve
+# *.saradomin.ftm.dev.br de dentro do pod); o `url` é o link que abre no navegador.
+server:
+  port: 8080
+  # Atrás do Traefik: usa o X-Forwarded-For para o IP real.
+  proxied: true
+
+pages:
+  - name: Saradomin
+    columns:
+      - size: small
+        widgets:
+          - type: clock
+            hour-format: 24h
+            timezones:
+              - timezone: Etc/UTC
+                label: UTC
+
+          # CPU (load average) e memória vêm do /proc do host; o disco é o /data
+          # montado só leitura do host, o mesmo dos apps de mídia.
+          - type: server-stats
+            servers:
+              - type: local
+                name: saradomin
+                hide-mountpoints-by-default: true
+                mountpoints:
+                  "/data":
+                    name: Disco (/data)
+
+          - type: releases
+            show-source-icon: true
+            collapse-after: 5
+            repositories:
+              - glanceapp/glance
+              - k3s-io/k3s
+              - traefik/traefik
+              - argoproj/argo-cd
+              - cloudnative-pg/cloudnative-pg
+              - zitadel/zitadel
+              - jellyfin/jellyfin
+              - Radarr/Radarr
+              - Sonarr/Sonarr
+
+      - size: full
+        widgets:
+          - type: monitor
+            title: Serviços
+            cache: 1m
+            sites:
+              - title: Jellyfin
+                url: https://jellyfin.saradomin.ftm.dev.br
+                check-url: http://jellyfin.media.svc:8096/health
+                icon: di:jellyfin
+              - title: Seerr
+                url: https://seerr.saradomin.ftm.dev.br
+                check-url: http://seerr.media.svc:5055/api/v1/status
+                icon: di:jellyseerr
+              - title: Radarr
+                url: https://radarr.saradomin.ftm.dev.br
+                check-url: http://radarr.media.svc:7878/ping
+                icon: di:radarr
+              - title: Sonarr
+                url: https://sonarr.saradomin.ftm.dev.br
+                check-url: http://sonarr.media.svc:8989/ping
+                icon: di:sonarr
+              - title: Prowlarr
+                url: https://prowlarr.saradomin.ftm.dev.br
+                check-url: http://prowlarr.media.svc:9696/ping
+                icon: di:prowlarr
+              - title: Bazarr
+                url: https://bazarr.saradomin.ftm.dev.br
+                check-url: http://bazarr.media.svc:6767/
+                icon: di:bazarr
+              - title: AeroFoil
+                url: https://aerofoil.saradomin.ftm.dev.br
+                check-url: http://aerofoil.media.svc:8465/
+                alt-status-codes:
+                  - 401
+                icon: mdi:nintendo-switch
+              - title: File Browser
+                url: https://files.saradomin.ftm.dev.br
+                check-url: http://filebrowser.files.svc:80/health
+                icon: di:filebrowser-quantum
+              - title: Zitadel
+                url: https://auth.ftm.dev.br
+                check-url: http://zitadel.security.svc:8080/debug/healthz
+                icon: di:zitadel
+              - title: Argo CD
+                url: https://argocd.saradomin.ftm.dev.br
+                check-url: http://argocd-server.argocd.svc:80/healthz
+                icon: di:argo-cd
+              - title: Grafana
+                url: https://grafana.saradomin.ftm.dev.br
+                check-url: http://kube-prometheus-stack-grafana.observability.svc:80/api/health
+                icon: di:grafana
+              - title: AdGuard Home
+                url: https://adguard.saradomin.ftm.dev.br
+                check-url: http://adguard-home.networking.svc:3000/
+                icon: di:adguard-home
+
+          - type: bookmarks
+            groups:
+              - title: saradomin
+                links:
+                  # A NetworkPolicy do qBittorrent só libera a Web UI para Sonarr,
+                  # Radarr e Traefik, então ele fica fora do monitor.
+                  - title: qBittorrent
+                    url: https://qbit.saradomin.ftm.dev.br
+                    icon: di:qbittorrent
+                  - title: Mesa
+                    url: https://mesa.saradomin.ftm.dev.br
+                    icon: mdi:database
+                  - title: Lastro
+                    url: https://lastro.ftm.dev.br
+                    icon: mdi:wallet
+                  - title: Jellyfin (público)
+                    url: https://jellyfin.ftm.dev.br
+                    icon: di:jellyfin
+                  - title: Pedidos (público)
+                    url: https://request.ftm.dev.br
+                    icon: di:jellyseerr
+              - title: zamorak
+                links:
+                  - title: Argo CD
+                    url: https://argocd.ftm.dev.br
+                    icon: di:argo-cd
+                  - title: n8n
+                    url: https://n8n.ftm.dev.br
+                    icon: di:n8n
+                  - title: Vaultwarden
+                    url: https://vault.ftm.dev.br
+                    icon: di:vaultwarden
