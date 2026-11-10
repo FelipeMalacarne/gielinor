@@ -44,6 +44,12 @@ pages:
               - timezone: Etc/UTC
                 label: UTC
 
+          # Open-Meteo; a cidade é resolvida pelo geocoding deles (Erechim, RS).
+          - type: weather
+            location: Erechim, Brazil
+            units: metric
+            hour-format: 24h
+
           - type: calendar
             first-day-of-week: sunday
 
@@ -240,6 +246,14 @@ pages:
 
       - size: small
         widgets:
+          # Yahoo Finance: os ativos da B3 levam o sufixo .SA.
+          - type: markets
+            markets:
+              - symbol: MUND11.SA
+                name: MUND11
+              - symbol: USDBRL=X
+                name: Dólar (R$)
+
           - type: bookmarks
             groups:
               - title: saradomin
@@ -305,19 +319,6 @@ pages:
     columns:
       - size: small
         widgets:
-          - type: markets
-            markets:
-              - symbol: ^BVSP
-                name: Ibovespa
-              - symbol: USDBRL=X
-                name: Dólar
-              - symbol: EURBRL=X
-                name: Euro
-              - symbol: BTC-USD
-                name: Bitcoin
-              - symbol: ^GSPC
-                name: S&P 500
-
           - type: rss
             title: Blogs
             limit: 15

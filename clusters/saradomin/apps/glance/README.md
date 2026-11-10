@@ -12,6 +12,9 @@ já está na LAN ou no tailnet. Também não usa secrets.
 ## Página Saradomin
 
 - **Busca** no topo (DuckDuckGo, com os atalhos `!yt`, `!gh`, `!r` e `!k8s`).
+- **Clima** de Erechim (Open-Meteo) e **mercado**: MUND11 e dólar em reais, pelo Yahoo
+  Finance. Para trocar o ativo (por exemplo pelo `VT`), use o símbolo do Yahoo; os da B3
+  levam `.SA`, como `MUND11.SA`.
 - **Relógio**, **calendário** e **server-stats**: CPU (load average), memória, temperatura e o
   uso do disco do `/data` do host, montado só leitura no pod.
 - **Pendências**: um to-do salvo no navegador (localStorage), não no cluster.
@@ -32,9 +35,8 @@ já está na LAN ou no tailnet. Também não usa secrets.
 
 ## Página Notícias
 
-Mercado (Ibovespa, dólar, euro, bitcoin e S&P 500, pelo Yahoo Finance), blogs (selfh.st,
-Kubernetes e Cloudflare), Hacker News, Lobsters e os subreddits r/selfhosted, r/homelab e
-r/kubernetes. O Reddit às vezes bloqueia acesso sem login; se a aba dele mostrar erro, o
+Blogs (selfh.st, Kubernetes e Cloudflare), Hacker News, Lobsters e os subreddits
+r/selfhosted, r/homelab e r/kubernetes. O Reddit às vezes bloqueia acesso sem login; se a aba dele mostrar erro, o
 resto da página não é afetado.
 
 ## Mudando a config
