@@ -64,6 +64,13 @@ spec:
       shared_buffers: "1536MB"
       effective_cache_size: "5GB"
       maintenance_work_mem: "128MB"
+      # Planejador (2026-11-10, adendo da ADR-028 do mapa): disco local SSD, então
+      # leitura aleatória custa quase o mesmo que a sequencial; work_mem maior tira
+      # ordenações e hashes do disco; JIT desligado, porque compilava ~100 ms em cada
+      # contagem e a carga é de consultas curtas. Os três recarregam sem restart.
+      random_page_cost: "1.1"
+      work_mem: "16MB"
+      jit: "off"
       checkpoint_completion_target: "0.9"
       wal_compression: "on"
       log_min_duration_statement: "1000"
