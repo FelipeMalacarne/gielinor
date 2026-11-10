@@ -1,0 +1,22 @@
+# Só pela LAN e pelo tailnet: o túnel da Cloudflare entrega no entrypoint web,
+# e este Ingress só existe no websecure (com o certificado wildcard do saradomin).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: glance
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: glance.saradomin.ftm.dev.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: glance
+                port:
+                  name: http
