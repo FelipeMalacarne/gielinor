@@ -1,0 +1,59 @@
+# Leitura do status da plataforma pelo widget "Plataforma" do glance.yml: as Applications
+# do Argo CD, o Cluster e os Backups do CNPG e os Certificates do cert-manager. Só get/list
+# nesses quatro recursos; nada de Secrets nem de escrita.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: glance
+  labels:
+    app.kubernetes.io/name: glance
+    app.kubernetes.io/part-of: dashboard
+automountServiceAccountToken: false
+---
+# Token sem validade, gerado pelo próprio Kubernetes (nada dele fica no Git). O Glance lê
+# o arquivo só quando sobe, então o token automático, que vence, não serve. Para revogar,
+# apague este Secret: o Kubernetes invalida o token e o Argo cria outro.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: glance-k8s-token
+  labels:
+    app.kubernetes.io/name: glance
+    app.kubernetes.io/part-of: dashboard
+  annotations:
+    kubernetes.io/service-account.name: glance
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: glance-platform-status
+  labels:
+    app.kubernetes.io/name: glance
+    app.kubernetes.io/part-of: dashboard
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["get", "list"]
+  - apiGroups: ["postgresql.cnpg.io"]
+    resources: ["clusters", "backups"]
+    verbs: ["get", "list"]
+  - apiGroups: ["cert-manager.io"]
+    resources: ["certificates"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: glance-platform-status
+  labels:
+    app.kubernetes.io/name: glance
+    app.kubernetes.io/part-of: dashboard
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: glance-platform-status
+subjects:
+  - kind: ServiceAccount
+    name: glance
+    namespace: dashboard

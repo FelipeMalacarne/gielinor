@@ -123,6 +123,104 @@ pages:
               {{ end }}{{ end }}
               </div>
 
+          # Lido na API do Kubernetes com a ServiceAccount glance (rbac.yaml), só leitura.
+          - type: custom-api
+            title: Plataforma
+            cache: 5m
+            url: https://kubernetes.default.svc/apis/argoproj.io/v1alpha1/namespaces/argocd/applications
+            headers: &kubernetes-auth
+              Authorization: Bearer ${readFileFromEnv:K8S_TOKEN_FILE}
+              Accept: application/json
+            subrequests:
+              postgres:
+                url: https://kubernetes.default.svc/apis/postgresql.cnpg.io/v1/namespaces/databases/clusters/postgres-main
+                headers: *kubernetes-auth
+              backups:
+                url: https://kubernetes.default.svc/apis/postgresql.cnpg.io/v1/namespaces/databases/backups
+                headers: *kubernetes-auth
+              certificates:
+                url: https://kubernetes.default.svc/apis/cert-manager.io/v1/certificates
+                headers: *kubernetes-auth
+            template: |
+              {{ $pg := .Subrequest "postgres" }}
+              {{ $backups := sortByString "metadata.creationTimestamp" "desc" ((.Subrequest "backups").JSON.Array "items") }}
+              {{ $certs := sortByString "metadata.name" "asc" ((.Subrequest "certificates").JSON.Array "items") }}
+              <div class="flex flex-wrap gap-25">
+                <div class="flex-1">
+                  <a class="size-h4 color-highlight block margin-bottom-10" href="https://argocd.saradomin.ftm.dev.br" target="_blank" rel="noreferrer">Argo CD</a>
+                  <ul class="list list-gap-8">
+                  {{ range sortByString "metadata.name" "asc" (.JSON.Array "items") }}
+                    {{ $name := .String "metadata.name" }}
+                    {{ $sync := .String "status.sync.status" }}
+                    {{ $health := .String "status.health.status" }}
+                    <li>
+                      <a class="color-highlight text-truncate block" href="https://argocd.saradomin.ftm.dev.br/applications/argocd/{{ $name }}" target="_blank" rel="noreferrer">{{ $name }}</a>
+                      <ul class="list-horizontal-text">
+                        <li class="{{ if eq $sync "Synced" }}color-positive{{ else }}color-negative{{ end }}">{{ $sync }}</li>
+                        <li class="{{ if eq $health "Healthy" }}color-positive{{ else if eq $health "Progressing" }}color-highlight{{ else }}color-negative{{ end }}">{{ $health }}</li>
+                        <li>{{ findMatch "^[0-9a-f]{7}" (.String "status.sync.revision") }}</li>
+                        {{ if .Exists "status.operationState.finishedAt" }}<li {{ .String "status.operationState.finishedAt" | parseRelativeTime "RFC3339" }}></li>{{ end }}
+                      </ul>
+                    </li>
+                  {{ end }}
+                  </ul>
+                </div>
+
+                <div class="flex-1">
+                  <div class="size-h4 color-highlight margin-bottom-10">Postgres</div>
+                  <ul class="list list-gap-8">
+                    <li>
+                      {{ $ready := $pg.JSON.Int "status.readyInstances" }}
+                      {{ $instances := $pg.JSON.Int "spec.instances" }}
+                      <div>postgres-main</div>
+                      <ul class="list-horizontal-text">
+                        <li class="{{ if and (eq $ready $instances) (gt $instances 0) }}color-positive{{ else }}color-negative{{ end }}">{{ $ready }}/{{ $instances }} prontas</li>
+                        <li>{{ $pg.JSON.String "status.phase" }}</li>
+                      </ul>
+                    </li>
+                    {{ $lastOk := "" }}
+                    {{ range $backups }}{{ if and (eq $lastOk "") (eq (.String "status.phase") "completed") }}{{ $lastOk = .String "status.stoppedAt" }}{{ end }}{{ end }}
+                    <li>
+                      <div>Último backup no R2</div>
+                      {{ if eq $lastOk "" }}
+                        <div class="color-negative">nenhum concluído</div>
+                      {{ else }}
+                        {{ $okAt := parseTime "RFC3339" $lastOk }}
+                        <div class="{{ if $okAt.Before (offsetNow "-36h") }}color-negative{{ else }}color-positive{{ end }}"><span {{ $okAt | toRelativeTime }}></span> atrás</div>
+                      {{ end }}
+                    </li>
+                    {{ range $i, $b := $backups }}{{ if and (eq $i 0) (ne ($b.String "status.phase") "completed") }}
+                      <li>
+                        <div>Backup mais recente</div>
+                        <div class="{{ if eq ($b.String "status.phase") "failed" }}color-negative{{ else }}color-highlight{{ end }}">{{ $b.String "status.phase" }}</div>
+                        {{ if $b.Exists "status.error" }}<div class="color-subdue text-truncate-2-lines">{{ $b.String "status.error" }}</div>{{ end }}
+                      </li>
+                    {{ end }}{{ end }}
+                  </ul>
+                </div>
+
+                <div class="flex-1">
+                  <div class="size-h4 color-highlight margin-bottom-10">Certificados</div>
+                  <ul class="list list-gap-8">
+                  {{ range $certs }}
+                    {{ $ready := .String `status.conditions.#(type=="Ready").status` }}
+                    <li>
+                      <div class="text-truncate">{{ .String "metadata.name" }}</div>
+                      <ul class="list-horizontal-text">
+                        {{ if .Exists "status.notAfter" }}
+                          {{ $days := div ((parseTime "RFC3339" (.String "status.notAfter")).Sub now).Hours 24.0 }}
+                          <li class="{{ if lt $days 14.0 }}color-negative{{ else }}color-positive{{ end }}">vence em {{ printf "%.0f" $days }} dias</li>
+                        {{ end }}
+                        <li class="{{ if eq $ready "True" }}color-positive{{ else }}color-negative{{ end }}">{{ if eq $ready "True" }}pronto{{ else }}não pronto{{ end }}</li>
+                      </ul>
+                    </li>
+                  {{ else }}
+                    <li class="color-subdue">nenhum certificado</li>
+                  {{ end }}
+                  </ul>
+                </div>
+              </div>
+
           - type: group
             widgets:
               # O Alertmanager está desligado; os alertas vêm das regras do próprio Prometheus.
