@@ -7,7 +7,7 @@ Cloudflare (`terraform/cloudflare/main.tf`), então não há nada a aplicar no T
 AdGuard e o certificado wildcard de `*.saradomin.ftm.dev.br` já cobrem o nome novo.
 
 O Glance não tem login próprio aqui, como os outros painéis internos; quem chega nele
-já está na LAN ou no tailnet. Também não usa secrets.
+já está na LAN ou no tailnet. Não usa secrets cifrados.
 
 ## Página Saradomin
 
@@ -22,6 +22,10 @@ já está na LAN ou no tailnet. Também não usa secrets.
   (o zamorak manda as métricas por remote write, com o label `cluster`): CPU, memória, disco
   raiz, pods rodando e com problema, restarts em 24h, rede, consumo pelo RAPL (só o
   saradomin tem) e há quanto tempo o nó está ligado.
+- **Plataforma**: as Applications do Argo CD (sync, saúde, revisão e último sync), o
+  `postgres-main` (réplicas prontas e há quanto tempo foi o último backup concluído no R2,
+  em vermelho depois de 36h ou se o mais recente falhou) e os certificados do cert-manager
+  (dias até vencer, em vermelho abaixo de 14). Vem da API do Kubernetes; veja abaixo.
 - **Alertas** e **Pods com problema**: o Alertmanager está desligado, então os alertas vêm
   de `/api/v1/alerts` do próprio Prometheus (só os disparados, sem o `Watchdog`); os pods são
   os `Pending`/`Failed`/`Unknown` e os containers em `CrashLoopBackOff` ou com erro de imagem.
@@ -38,6 +42,18 @@ já está na LAN ou no tailnet. Também não usa secrets.
 Blogs (selfh.st, Kubernetes e Cloudflare), Hacker News, Lobsters e os subreddits
 r/selfhosted, r/homelab e r/kubernetes. O Reddit às vezes bloqueia acesso sem login; se a aba dele mostrar erro, o
 resto da página não é afetado.
+
+## Acesso à API do Kubernetes
+
+O widget Plataforma lê a API com a ServiceAccount `glance` (`rbac.yaml`), que só tem `get` e
+`list` em Applications do Argo CD, Clusters e Backups do CNPG e Certificates do cert-manager;
+nada de Secrets nem de escrita. O token vem do Secret `glance-k8s-token`, do tipo
+`service-account-token`: o Kubernetes preenche o token e o `ca.crt`, e nada disso fica no Git.
+O token montado automaticamente não serve porque vence, e o Glance só lê o arquivo quando sobe.
+
+O pod confia na CA do cluster pelo `SSL_CERT_DIR`, que soma a pasta do Secret às CAs do sistema.
+Para revogar o acesso, apague o Secret `glance-k8s-token` no namespace `dashboard`; o Argo CD
+cria outro, com um token novo, e basta reiniciar o pod.
 
 ## Mudando a config
 

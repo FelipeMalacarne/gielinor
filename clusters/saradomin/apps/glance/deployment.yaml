@@ -16,6 +16,8 @@ spec:
         app.kubernetes.io/name: glance
         app.kubernetes.io/part-of: dashboard
     spec:
+      serviceAccountName: glance
+      # O token vem do Secret glance-k8s-token (rbac.yaml), que não vence.
       automountServiceAccountToken: false
       # O server-stats mostra o nó em que o pod roda e o /data dele.
       nodeSelector:
@@ -33,6 +35,13 @@ spec:
           env:
             - name: TZ
               value: America/Sao_Paulo
+            # Lido pelo glance.yml com ${readFileFromEnv:K8S_TOKEN_FILE}.
+            - name: K8S_TOKEN_FILE
+              value: /var/run/secrets/glance-k8s/token
+            # Confia também na CA do cluster (o ca.crt do mesmo Secret) para falar com
+            # https://kubernetes.default.svc, sem perder as CAs do sistema.
+            - name: SSL_CERT_DIR
+              value: /etc/ssl/certs:/var/run/secrets/glance-k8s
           ports:
             - name: http
               containerPort: 8080
@@ -72,6 +81,9 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
+            - name: k8s-token
+              mountPath: /var/run/secrets/glance-k8s
+              readOnly: true
       volumes:
         - name: config
           configMap:
@@ -84,3 +96,11 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 64Mi
+        - name: k8s-token
+          secret:
+            secretName: glance-k8s-token
+            items:
+              - key: token
+                path: token
+              - key: ca.crt
+                path: ca.crt
