@@ -63,6 +63,12 @@ spec:
       checkpoint_completion_target: "0.9"
       wal_compression: "on"
       log_min_duration_statement: "1000"
+      # pg_stat_statements: tempo acumulado por query, para achar o que gasta a CPU do
+      # nó (o postgres-main era ~0,8 de 2 vCPUs em 2026-11-10). Definir um parâmetro
+      # dele faz o CNPG pôr a biblioteca em shared_preload_libraries (pede restart);
+      # a extensão em si é criada pelo Database de cada app (apps/mapa/database.yaml).
+      pg_stat_statements.max: "5000"
+      pg_stat_statements.track: "top"
 
   resources:
     requests:
