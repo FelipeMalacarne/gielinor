@@ -57,8 +57,12 @@ spec:
   postgresql:
     parameters:
       max_connections: "100"
-      shared_buffers: "512MB"
-      effective_cache_size: "2GB"
+      # Memória (2026-11-10): o banco do mapa tem ~10 GB e o cache hit estava em 92–93%
+      # com 512 MB de shared_buffers e 4 GiB de limite, num nó de 12 GB com ~8 livres.
+      # shared_buffers num quarto do limite; effective_cache_size com o resto do pod
+      # (o cache de disco do kernel conta no limite do cgroup).
+      shared_buffers: "1536MB"
+      effective_cache_size: "5GB"
       maintenance_work_mem: "128MB"
       checkpoint_completion_target: "0.9"
       wal_compression: "on"
@@ -73,10 +77,11 @@ spec:
   resources:
     requests:
       cpu: 500m
-      memory: 1Gi
+      # O request cobre o shared_buffers, que é memória do pod desde que o Postgres sobe.
+      memory: 2Gi
     limits:
       cpu: "2"
-      memory: 4Gi
+      memory: 6Gi
 
   monitoring:
     enablePodMonitor: false
