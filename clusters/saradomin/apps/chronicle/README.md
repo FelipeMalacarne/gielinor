@@ -5,7 +5,8 @@ Este diretório é o lado do cluster do Chronicle, o planner do Ironman
 
 - a `Application` do Argo CD, apontando para `deploy/k8s/overlays/saradomin` do repositório do planner;
 - em `secrets.yaml` (SOPS): `chronicle-secrets` (o ambiente do app) e `repo-chronicle` no
-  `argocd` (deploy key só de leitura, para o Argo ler o repositório privado).
+  `argocd` (deploy key só de leitura, para o Argo ler o repositório privado);
+- o lado do cluster dos workers do Microbot (doc 11 do planner, seções 7 e 13), abaixo.
 
 O banco não fica aqui: é o `chronicle` do `postgres-main` (`../postgres`), com o role, o `Database` e a
 senha em `../postgres/chronicle-db-secrets.yaml`. A mesma senha está na `DATABASE_URL` de
@@ -40,7 +41,44 @@ certificado curinga). O login é o Zitadel de `../zitadel`, público em `auth.ft
    initContainer `migrate` termina antes); `https://chronicle.saradomin.ftm.dev.br` leva ao login do
    Zitadel e volta com a sessão.
 
-## Pendências
+## Workers do Microbot
 
-- **Microbot:** `MICROBOT_CONTROL=off` aqui; o agent do zaros precisa de uma conta de máquina no Zitadel
-  (doc 08 do planner) antes de ligar.
+Um pod por conta (`worker-<conta>`), criado e apagado pelo próprio servidor, rodando o cliente do
+Microbot headless com o `chronicle agent --worker` (doc 11 do planner). O Argo não gerencia esses
+Deployments: eles não têm a etiqueta dele. O que é do cluster está aqui:
+
+| Arquivo | O quê |
+|---|---|
+| `serviceaccounts.yaml` | `chronicle` (o servidor) e `chronicle-worker` (os pods worker: nenhuma permissão, `automountServiceAccountToken: false`) |
+| `rbac.yaml` | Role `chronicle-workers` (Deployments: create, delete, get, list, watch, patch, update; pods: get, list, watch; nada em secrets) e `system:auth-delegator` para a TokenReview do token projetado |
+| `admission.yaml` | ValidatingAdmissionPolicy: o que a SA `chronicle` escreve em Deployments só pode ser um worker (etiquetas, SA, imagem, `replicas <= 1`, `Recreate`, volumes, nada do host nem de Secrets); o Deployment do próprio app fica fora do alcance dela |
+| `quota.yaml` | ResourceQuota: o app e até 3 workers (500m e 1Gi de requests cada) e 4 Deployments |
+| `networkpolicy.yaml` | os workers não recebem conexão e saem só para o DNS, o servidor e a internet (sem LAN, rede do cluster nem tailnet) |
+| `pvc.yaml` | `microbot-game-cache`, o cache do jogo compartilhado (`local-path`, 2Gi) |
+
+### Ativar (uma vez)
+
+1. **Ordem.** Este diretório (as SAs) vai para a `main` do gielinor e o `saradomin-root` sincroniza
+   **antes** da versão do planner com `serviceAccountName: chronicle` no Deployment: sem a SA, o
+   ReplicaSet não cria o pod e o app fica parado. Conferir com
+   `kubectl --context=saradomin -n chronicle get sa,role,rolebinding,resourcequota,networkpolicy,pvc`
+   e `kubectl --context=saradomin get validatingadmissionpolicy chronicle-workers`. O PVC fica
+   Pending até o primeiro worker (`WaitForFirstConsumer`).
+2. **Chave do cofre.** As sessões da Jagex ficam cifradas no banco com o `CHRONICLE_VAULT_KEY`
+   (32 bytes em base64, AES-256-GCM). Gerar com `openssl rand -base64 32` e acrescentar a
+   `chronicle-secrets` como o `AGENTS.md` manda: `sops clusters/saradomin/apps/chronicle/secrets.yaml`
+   (ou um `secrets.dec.yaml` local cifrado para um arquivo temporário, que só então substitui o
+   `secrets.yaml`), e commitar só o `secrets.yaml` cifrado. Guardar a chave também fora do cluster:
+   sem ela, as sessões salvas não se abrem e cada conta precisa ser conectada de novo.
+3. **Zitadel.** No projeto "Chronicle", as roles `microbot:control` (o Cockpit e os workers na web),
+   dada ao dono, e `microbot:agent`, dada só à conta de máquina do agent do zaros (nenhuma pessoa a
+   tem; doc 08 do planner). Os workers não usam o Zitadel: o agent deles entra pelo token projetado.
+4. **Imagens.** A primeira `microbot-worker-base` publicada pelo CI do `microbot-plugins` e fixada no
+   planner (`just worker-base-bump <tag>`); o CI do planner passa então a publicar
+   `ghcr.io/felipemalacarne/chronicle-worker:<sha>` e grava `WORKER_IMAGE` no overlay. Os dois pacotes
+   em Public no GHCR (Package settings → Change visibility), como o `chronicle`: o k3s baixa sem login.
+5. **Ligar.** No planner, `WORKERS=on` no overlay (`deploy/k8s/overlays/saradomin`), depois do
+   `CHRONICLE_VAULT_KEY` no `chronicle-secrets`: o servidor recusa subir com `WORKERS=on` sem a chave.
+6. **Conferir.** Na web, conectar uma conta e iniciar o worker: `kubectl --context=saradomin -n
+   chronicle get deploy,pods -l app.kubernetes.io/component=worker` mostra o `worker-<conta>`. Um
+   worker além da quota não vira pod: o ReplicaSet registra `FailedCreate` ("exceeded quota").

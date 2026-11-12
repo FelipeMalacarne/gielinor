@@ -1,0 +1,54 @@
+# Rede dos pods worker (doc 11 do planner, seção 7). O k3s aplica NetworkPolicy pelo controller do
+# kube-router embutido no próprio k3s (ligado por padrão, mesmo com o flannel como CNI); não há
+# Calico nem Cilium a instalar.
+#
+# - Ingress: nada. A VNC do Cockpit e o controle vão pela conexão de saída do agent ao servidor
+#   (websocket), então ninguém precisa abrir conexão para dentro do pod.
+# - Egress: o DNS do cluster, o servidor (pods `component: web`, na porta do container: a regra vale
+#   depois da tradução do Service `chronicle:80` para o pod) e a internet (login da Jagex, mundos do
+#   jogo, updates), nunca a LAN, a rede do cluster ou a tailnet.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: chronicle-workers
+  namespace: chronicle
+  labels:
+    app.kubernetes.io/name: chronicle
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: chronicle
+      app.kubernetes.io/component: worker
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: chronicle
+              app.kubernetes.io/component: web
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10

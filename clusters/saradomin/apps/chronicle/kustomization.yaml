@@ -6,8 +6,18 @@ kind: Kustomization
 # Application abaixo e atualizado pelo CI dele a cada push na `main`.
 # O banco é o `chronicle` do postgres-main compartilhado (apps/postgres), não um Postgres próprio.
 # Sem `namespace:` aqui: cada recurso diz o seu (argocd ou chronicle).
+#
+# Os workers do Microbot (doc 11 do planner, seção 7): as SAs, o RBAC do servidor, a política de
+# admissão, a quota, a rede dos workers e o cache do jogo. Os Deployments `worker-<conta>` são criados
+# pelo próprio servidor, fora do Argo.
 resources:
   - application.yaml
+  - serviceaccounts.yaml
+  - rbac.yaml
+  - admission.yaml
+  - quota.yaml
+  - networkpolicy.yaml
+  - pvc.yaml
 
 generators:
   - ksops.yaml
