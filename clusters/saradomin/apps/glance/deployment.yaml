@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: glance
+  labels:
+    app.kubernetes.io/name: glance
+    app.kubernetes.io/part-of: dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: glance
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: glance
+        app.kubernetes.io/part-of: dashboard
+    spec:
+      serviceAccountName: glance
+      # O token vem do Secret glance-k8s-token (rbac.yaml), que não vence.
+      automountServiceAccountToken: false
+      # O server-stats mostra o nó em que o pod roda e o /data dele.
+      nodeSelector:
+        kubernetes.io/hostname: saradomin
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: glance
+          image: glanceapp/glance:v0.8.8@sha256:4d7445bc7971836858ffddee5d7501f1efbabb6e694a45b1dde1a789bb1943bb
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: America/Sao_Paulo
+            # Lido pelo glance.yml com ${readFileFromEnv:K8S_TOKEN_FILE}.
+            - name: K8S_TOKEN_FILE
+              value: /var/run/secrets/glance-k8s/token
+            # Confia também na CA do cluster (o ca.crt do mesmo Secret) para falar com
+            # https://kubernetes.default.svc, sem perder as CAs do sistema.
+            - name: SSL_CERT_DIR
+              value: /etc/ssl/certs:/var/run/secrets/glance-k8s
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 10m
+              memory: 48Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /api/healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /api/healthz
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            - name: data
+              mountPath: /data
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: k8s-token
+              mountPath: /var/run/secrets/glance-k8s
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: glance-config
+        # Só para o disk.Usage do server-stats; o Glance não lê nem escreve arquivos aqui.
+        - name: data
+          hostPath:
+            path: /data
+            type: Directory
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: k8s-token
+          secret:
+            secretName: glance-k8s-token
+            items:
+              - key: token
+                path: token
+              - key: ca.crt
+                path: ca.crt

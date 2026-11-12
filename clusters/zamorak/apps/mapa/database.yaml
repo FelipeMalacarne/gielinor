@@ -15,5 +15,9 @@ spec:
   extensions:
     - name: vector
       ensure: present
+    # Consultas por tempo acumulado (pg_stat_statements); a biblioteca é carregada pelo
+    # parâmetro em apps/postgres/cluster.yaml.
+    - name: pg_stat_statements
+      ensure: present
 
   databaseReclaimPolicy: retain

@@ -57,20 +57,36 @@ spec:
   postgresql:
     parameters:
       max_connections: "100"
-      shared_buffers: "512MB"
-      effective_cache_size: "2GB"
+      # Memória (2026-11-10): o banco do mapa tem ~10 GB e o cache hit estava em 92–93%
+      # com 512 MB de shared_buffers e 4 GiB de limite, num nó de 12 GB com ~8 livres.
+      # shared_buffers num quarto do limite; effective_cache_size com o resto do pod
+      # (o cache de disco do kernel conta no limite do cgroup).
+      shared_buffers: "1536MB"
+      effective_cache_size: "5GB"
       maintenance_work_mem: "128MB"
+      # Planejador (2026-11-10, adendo da ADR-028 do mapa): disco local SSD, então
+      # leitura aleatória custa quase o mesmo que a sequencial; work_mem maior tira
+      # ordenações e hashes do disco. Os dois recarregam sem restart.
+      random_page_cost: "1.1"
+      work_mem: "16MB"
       checkpoint_completion_target: "0.9"
       wal_compression: "on"
       log_min_duration_statement: "1000"
+      # pg_stat_statements: tempo acumulado por query, para achar o que gasta a CPU do
+      # nó (o postgres-main era ~0,8 de 2 vCPUs em 2026-11-10). Definir um parâmetro
+      # dele faz o CNPG pôr a biblioteca em shared_preload_libraries (pede restart);
+      # a extensão em si é criada pelo Database de cada app (apps/mapa/database.yaml).
+      pg_stat_statements.max: "5000"
+      pg_stat_statements.track: "top"
 
   resources:
     requests:
       cpu: 500m
-      memory: 1Gi
+      # O request cobre o shared_buffers, que é memória do pod desde que o Postgres sobe.
+      memory: 2Gi
     limits:
       cpu: "2"
-      memory: 4Gi
+      memory: 6Gi
 
   monitoring:
     enablePodMonitor: false

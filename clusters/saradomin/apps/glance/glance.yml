@@ -1,0 +1,452 @@
+# Configuração do Glance (https://github.com/glanceapp/glance/blob/main/docs/configuration.md).
+# O kustomization gera o ConfigMap com hash no nome, então qualquer mudança aqui
+# reinicia o pod no próximo sync do Argo CD.
+#
+# Tudo que é do cluster é lido por dentro: os checks do monitor vão direto nos Services
+# (o pod não resolve *.saradomin.ftm.dev.br) e os widgets "custom-api" consultam o
+# Prometheus do saradomin, que também recebe as métricas do zamorak (label `cluster`).
+# O `url` de cada serviço é só o link que abre no navegador.
+server:
+  port: 8080
+  # Atrás do Traefik: usa o X-Forwarded-For para o IP real.
+  proxied: true
+
+# Só guarda âncoras YAML; o Glance ignora esta chave.
+x-anchors:
+  prometheus-query: &prometheus-query http://kube-prometheus-stack-prometheus.observability.svc:9090/api/v1/query
+
+pages:
+  - name: Saradomin
+    head-widgets:
+      - type: search
+        search-engine: duckduckgo
+        placeholder: Buscar (atalhos !yt, !gh, !r, !k8s)
+        bangs:
+          - title: YouTube
+            shortcut: "!yt"
+            url: https://www.youtube.com/results?search_query={QUERY}
+          - title: GitHub
+            shortcut: "!gh"
+            url: https://github.com/search?q={QUERY}&type=repositories
+          - title: Reddit
+            shortcut: "!r"
+            url: https://www.reddit.com/search?q={QUERY}
+          - title: Kubernetes
+            shortcut: "!k8s"
+            url: https://kubernetes.io/search/?q={QUERY}
+
+    columns:
+      - size: small
+        widgets:
+          - type: clock
+            hour-format: 24h
+            timezones:
+              - timezone: Etc/UTC
+                label: UTC
+
+          # Open-Meteo; a cidade é resolvida pelo geocoding deles (Erechim, RS).
+          - type: weather
+            location: Erechim, Brazil
+            units: metric
+            hour-format: 24h
+
+          - type: calendar
+            first-day-of-week: sunday
+
+          # CPU (load average) e memória vêm do /proc do host; o disco é o /data
+          # montado só leitura do host. Com hide-mountpoints-by-default, cada disco
+          # listado precisa de `hide: false`, senão fica escondido também.
+          - type: server-stats
+            servers:
+              - type: local
+                name: saradomin
+                hide-mountpoints-by-default: true
+                mountpoints:
+                  "/data":
+                    name: Disco (/data)
+                    hide: false
+
+          # Fica no navegador (localStorage), não no cluster.
+          - type: to-do
+            title: Pendências
+
+      - size: full
+        widgets:
+          # Uma consulta só: cada métrica ganha o label `m`, que ordena e escolhe o formato.
+          - type: custom-api
+            title: Clusters
+            title-url: https://grafana.saradomin.ftm.dev.br
+            cache: 1m
+            url: *prometheus-query
+            parameters:
+              query: >-
+                label_replace(100 * (1 - avg by (cluster) (rate(node_cpu_seconds_total{job="node-exporter", mode="idle"}[5m]))), "m", "a-cpu", "", "")
+                or label_replace(100 * (1 - sum by (cluster) (node_memory_MemAvailable_bytes{job="node-exporter"}) / sum by (cluster) (node_memory_MemTotal_bytes{job="node-exporter"})), "m", "b-mem", "", "")
+                or label_replace(100 * (1 - sum by (cluster) (node_filesystem_avail_bytes{job="node-exporter", mountpoint="/", fstype!~"tmpfs|overlay"}) / sum by (cluster) (node_filesystem_size_bytes{job="node-exporter", mountpoint="/", fstype!~"tmpfs|overlay"})), "m", "c-disk", "", "")
+                or label_replace(sum by (cluster) (kube_pod_status_phase{phase="Running"}), "m", "d-pods", "", "")
+                or label_replace(sum by (cluster) (kube_pod_status_phase{phase=~"Pending|Failed|Unknown"}), "m", "e-bad", "", "")
+                or label_replace(round(sum by (cluster) (increase(kube_pod_container_status_restarts_total[24h]))), "m", "f-restarts", "", "")
+                or label_replace(sum by (cluster) (rate(node_network_receive_bytes_total{job="node-exporter", device!~"lo|veth.*|cni.*|flannel.*|tailscale.*"}[5m])), "m", "g-rx", "", "")
+                or label_replace(sum by (cluster) (rate(node_network_transmit_bytes_total{job="node-exporter", device!~"lo|veth.*|cni.*|flannel.*|tailscale.*"}[5m])), "m", "h-tx", "", "")
+                or label_replace(sum by (cluster) (rate({__name__=~"node_rapl_(package|dram)_joules_total", job="node-exporter"}[5m])), "m", "i-power", "", "")
+                or label_replace(min by (cluster) (time() - node_boot_time_seconds{job="node-exporter"}), "m", "j-uptime", "", "")
+            template: |
+              {{ $byMetric := sortByString "metric.m" "asc" (.JSON.Array "data.result") }}
+              {{ $byCluster := sortByString "metric.cluster" "asc" (.JSON.Array "data.result") }}
+              {{ if eq (len $byMetric) 0 }}
+                <p class="color-negative">Sem dados do Prometheus.</p>
+              {{ end }}
+              <div class="flex flex-wrap gap-25">
+              {{ range $byCluster }}{{ if eq (.String "metric.m") "a-cpu" }}
+                {{ $cluster := .String "metric.cluster" }}
+                <div class="flex-1">
+                  <div class="size-h3 color-highlight margin-bottom-10">{{ $cluster }}</div>
+                  <ul class="list list-gap-4">
+                  {{ range $byMetric }}{{ if eq (.String "metric.cluster") $cluster }}
+                    {{ $m := .String "metric.m" }}{{ $v := .Float "value.1" }}
+                    <li class="flex justify-between">
+                    {{ if eq $m "a-cpu" }}<span>CPU</span><span class="{{ if ge $v 85.0 }}color-negative{{ else }}color-highlight{{ end }}">{{ printf "%.0f%%" $v }}</span>
+                    {{ else if eq $m "b-mem" }}<span>Memória</span><span class="{{ if ge $v 85.0 }}color-negative{{ else }}color-highlight{{ end }}">{{ printf "%.0f%%" $v }}</span>
+                    {{ else if eq $m "c-disk" }}<span>Disco (/)</span><span class="{{ if ge $v 85.0 }}color-negative{{ else }}color-highlight{{ end }}">{{ printf "%.0f%%" $v }}</span>
+                    {{ else if eq $m "d-pods" }}<span>Pods rodando</span><span class="color-highlight">{{ printf "%.0f" $v }}</span>
+                    {{ else if eq $m "e-bad" }}<span>Pods com problema</span><span class="{{ if gt $v 0.0 }}color-negative{{ else }}color-positive{{ end }}">{{ printf "%.0f" $v }}</span>
+                    {{ else if eq $m "f-restarts" }}<span>Restarts (24h)</span><span class="{{ if gt $v 0.0 }}color-negative{{ else }}color-highlight{{ end }}">{{ printf "%.0f" $v }}</span>
+                    {{ else if eq $m "g-rx" }}<span>Rede ↓</span><span class="color-highlight">{{ if ge $v 1048576.0 }}{{ printf "%.1f MB/s" (div $v 1048576.0) }}{{ else }}{{ printf "%.0f KB/s" (div $v 1024.0) }}{{ end }}</span>
+                    {{ else if eq $m "h-tx" }}<span>Rede ↑</span><span class="color-highlight">{{ if ge $v 1048576.0 }}{{ printf "%.1f MB/s" (div $v 1048576.0) }}{{ else }}{{ printf "%.0f KB/s" (div $v 1024.0) }}{{ end }}</span>
+                    {{ else if eq $m "i-power" }}<span>Consumo (CPU+RAM)</span><span class="color-highlight">{{ printf "%.1f W" $v }}</span>
+                    {{ else if eq $m "j-uptime" }}<span>Ligado há</span><span class="color-highlight">{{ if ge $v 86400.0 }}{{ printf "%.0f dias" (div $v 86400.0) }}{{ else }}{{ printf "%.0f h" (div $v 3600.0) }}{{ end }}</span>
+                    {{ end }}
+                    </li>
+                  {{ end }}{{ end }}
+                  </ul>
+                </div>
+              {{ end }}{{ end }}
+              </div>
+
+          # Lido na API do Kubernetes com a ServiceAccount glance (rbac.yaml), só leitura.
+          - type: custom-api
+            title: Plataforma
+            cache: 5m
+            url: https://kubernetes.default.svc/apis/argoproj.io/v1alpha1/namespaces/argocd/applications
+            headers: &kubernetes-auth
+              Authorization: Bearer ${readFileFromEnv:K8S_TOKEN_FILE}
+              Accept: application/json
+            subrequests:
+              postgres:
+                url: https://kubernetes.default.svc/apis/postgresql.cnpg.io/v1/namespaces/databases/clusters/postgres-main
+                headers: *kubernetes-auth
+              backups:
+                url: https://kubernetes.default.svc/apis/postgresql.cnpg.io/v1/namespaces/databases/backups
+                headers: *kubernetes-auth
+              certificates:
+                url: https://kubernetes.default.svc/apis/cert-manager.io/v1/certificates
+                headers: *kubernetes-auth
+            template: |
+              {{ $pg := .Subrequest "postgres" }}
+              {{ $backups := sortByString "metadata.creationTimestamp" "desc" ((.Subrequest "backups").JSON.Array "items") }}
+              {{ $certs := sortByString "metadata.name" "asc" ((.Subrequest "certificates").JSON.Array "items") }}
+              <div class="flex flex-wrap gap-25">
+                <div class="flex-1">
+                  <a class="size-h4 color-highlight block margin-bottom-10" href="https://argocd.saradomin.ftm.dev.br" target="_blank" rel="noreferrer">Argo CD</a>
+                  <ul class="list list-gap-8">
+                  {{ range sortByString "metadata.name" "asc" (.JSON.Array "items") }}
+                    {{ $name := .String "metadata.name" }}
+                    {{ $sync := .String "status.sync.status" }}
+                    {{ $health := .String "status.health.status" }}
+                    <li>
+                      <a class="color-highlight text-truncate block" href="https://argocd.saradomin.ftm.dev.br/applications/argocd/{{ $name }}" target="_blank" rel="noreferrer">{{ $name }}</a>
+                      <ul class="list-horizontal-text">
+                        <li class="{{ if eq $sync "Synced" }}color-positive{{ else }}color-negative{{ end }}">{{ $sync }}</li>
+                        <li class="{{ if eq $health "Healthy" }}color-positive{{ else if eq $health "Progressing" }}color-highlight{{ else }}color-negative{{ end }}">{{ $health }}</li>
+                        <li>{{ findMatch "^[0-9a-f]{7}" (.String "status.sync.revision") }}</li>
+                        {{ if .Exists "status.operationState.finishedAt" }}<li {{ .String "status.operationState.finishedAt" | parseRelativeTime "RFC3339" }}></li>{{ end }}
+                      </ul>
+                    </li>
+                  {{ end }}
+                  </ul>
+                </div>
+
+                <div class="flex-1">
+                  <div class="size-h4 color-highlight margin-bottom-10">Postgres</div>
+                  <ul class="list list-gap-8">
+                    <li>
+                      {{ $ready := $pg.JSON.Int "status.readyInstances" }}
+                      {{ $instances := $pg.JSON.Int "spec.instances" }}
+                      <div>postgres-main</div>
+                      <ul class="list-horizontal-text">
+                        <li class="{{ if and (eq $ready $instances) (gt $instances 0) }}color-positive{{ else }}color-negative{{ end }}">{{ $ready }}/{{ $instances }} prontas</li>
+                        <li>{{ $pg.JSON.String "status.phase" }}</li>
+                      </ul>
+                    </li>
+                    {{ $lastOk := "" }}
+                    {{ range $backups }}{{ if and (eq $lastOk "") (eq (.String "status.phase") "completed") }}{{ $lastOk = .String "status.stoppedAt" }}{{ end }}{{ end }}
+                    <li>
+                      <div>Último backup no R2</div>
+                      {{ if eq $lastOk "" }}
+                        <div class="color-negative">nenhum concluído</div>
+                      {{ else }}
+                        {{ $okAt := parseTime "RFC3339" $lastOk }}
+                        <div class="{{ if $okAt.Before (offsetNow "-36h") }}color-negative{{ else }}color-positive{{ end }}"><span {{ $okAt | toRelativeTime }}></span> atrás</div>
+                      {{ end }}
+                    </li>
+                    {{ range $i, $b := $backups }}{{ if and (eq $i 0) (ne ($b.String "status.phase") "completed") }}
+                      <li>
+                        <div>Backup mais recente</div>
+                        <div class="{{ if eq ($b.String "status.phase") "failed" }}color-negative{{ else }}color-highlight{{ end }}">{{ $b.String "status.phase" }}</div>
+                        {{ if $b.Exists "status.error" }}<div class="color-subdue text-truncate-2-lines">{{ $b.String "status.error" }}</div>{{ end }}
+                      </li>
+                    {{ end }}{{ end }}
+                  </ul>
+                </div>
+
+                <div class="flex-1">
+                  <div class="size-h4 color-highlight margin-bottom-10">Certificados</div>
+                  <ul class="list list-gap-8">
+                  {{ range $certs }}
+                    {{ $ready := .String `status.conditions.#(type=="Ready").status` }}
+                    <li>
+                      <div class="text-truncate">{{ .String "metadata.name" }}</div>
+                      <ul class="list-horizontal-text">
+                        {{ if .Exists "status.notAfter" }}
+                          {{ $days := div ((parseTime "RFC3339" (.String "status.notAfter")).Sub now).Hours 24.0 }}
+                          <li class="{{ if lt $days 14.0 }}color-negative{{ else }}color-positive{{ end }}">vence em {{ printf "%.0f" $days }} dias</li>
+                        {{ end }}
+                        <li class="{{ if eq $ready "True" }}color-positive{{ else }}color-negative{{ end }}">{{ if eq $ready "True" }}pronto{{ else }}não pronto{{ end }}</li>
+                      </ul>
+                    </li>
+                  {{ else }}
+                    <li class="color-subdue">nenhum certificado</li>
+                  {{ end }}
+                  </ul>
+                </div>
+              </div>
+
+          - type: group
+            widgets:
+              # O Alertmanager está desligado; os alertas vêm das regras do próprio Prometheus.
+              - type: custom-api
+                title: Alertas
+                cache: 1m
+                url: http://kube-prometheus-stack-prometheus.observability.svc:9090/api/v1/alerts
+                template: |
+                  {{ $count := 0.0 }}
+                  <ul class="list list-gap-10 collapsible-container" data-collapse-after="5">
+                  {{ range .JSON.Array "data.alerts" }}
+                    {{ $name := .String "labels.alertname" }}
+                    {{ if and (eq (.String "state") "firing") (ne $name "Watchdog") (ne $name "InfoInhibitor") }}
+                      {{ $count = add $count 1.0 }}
+                      <li>
+                        <div class="size-h4 text-truncate {{ if eq (.String "labels.severity") "critical" }}color-negative{{ else }}color-highlight{{ end }}">{{ $name }}</div>
+                        <ul class="list-horizontal-text">
+                          <li>{{ .String "labels.cluster" }}</li>
+                          <li>{{ .String "labels.severity" }}</li>
+                          <li {{ .String "activeAt" | parseRelativeTime "RFC3339" }}></li>
+                        </ul>
+                        {{ if .Exists "annotations.summary" }}<div class="color-subdue text-truncate-2-lines">{{ .String "annotations.summary" }}</div>{{ end }}
+                      </li>
+                    {{ end }}
+                  {{ end }}
+                  </ul>
+                  {{ if eq $count 0.0 }}<p class="color-positive">Nenhum alerta disparado.</p>{{ end }}
+
+              - type: custom-api
+                title: Pods com problema
+                cache: 1m
+                url: *prometheus-query
+                parameters:
+                  query: >-
+                    (kube_pod_status_phase{phase=~"Pending|Failed|Unknown"} == 1)
+                    or on (cluster, namespace, pod)
+                    label_replace(max by (cluster, namespace, pod, reason) (kube_pod_container_status_waiting_reason{reason=~"CrashLoopBackOff|ImagePullBackOff|ErrImagePull|CreateContainerConfigError|CreateContainerError"} == 1), "phase", "$1", "reason", "(.*)")
+                template: |
+                  {{ $pods := sortByString "metric.namespace" "asc" (.JSON.Array "data.result") }}
+                  {{ if eq (len $pods) 0 }}
+                    <p class="color-positive">Todos os pods saudáveis.</p>
+                  {{ else }}
+                    <ul class="list list-gap-10 collapsible-container" data-collapse-after="5">
+                    {{ range $pods }}
+                      <li>
+                        <div class="size-h4 color-highlight text-truncate">{{ .String "metric.pod" }}</div>
+                        <ul class="list-horizontal-text">
+                          <li>{{ .String "metric.cluster" }}</li>
+                          <li>{{ .String "metric.namespace" }}</li>
+                          <li class="color-negative">{{ .String "metric.phase" }}</li>
+                        </ul>
+                      </li>
+                    {{ end }}
+                    </ul>
+                  {{ end }}
+
+          - type: monitor
+            title: Serviços
+            cache: 1m
+            style: compact
+            sites:
+              - title: Jellyfin
+                url: https://jellyfin.saradomin.ftm.dev.br
+                check-url: http://jellyfin.media.svc:8096/health
+                icon: di:jellyfin
+              - title: Seerr
+                url: https://seerr.saradomin.ftm.dev.br
+                check-url: http://seerr.media.svc:5055/api/v1/status
+                icon: di:jellyseerr
+              - title: Radarr
+                url: https://radarr.saradomin.ftm.dev.br
+                check-url: http://radarr.media.svc:7878/ping
+                icon: di:radarr
+              - title: Sonarr
+                url: https://sonarr.saradomin.ftm.dev.br
+                check-url: http://sonarr.media.svc:8989/ping
+                icon: di:sonarr
+              - title: Prowlarr
+                url: https://prowlarr.saradomin.ftm.dev.br
+                check-url: http://prowlarr.media.svc:9696/ping
+                icon: di:prowlarr
+              - title: Bazarr
+                url: https://bazarr.saradomin.ftm.dev.br
+                check-url: http://bazarr.media.svc:6767/
+                icon: di:bazarr
+              - title: AeroFoil
+                url: https://aerofoil.saradomin.ftm.dev.br
+                check-url: http://aerofoil.media.svc:8465/
+                alt-status-codes:
+                  - 401
+                icon: mdi:nintendo-switch
+              - title: File Browser
+                url: https://files.saradomin.ftm.dev.br
+                check-url: http://filebrowser.files.svc:80/health
+                icon: di:filebrowser-quantum
+              # O /readyz do lastro também confere o banco.
+              - title: Lastro
+                url: https://lastro.ftm.dev.br
+                check-url: http://lastro.lastro.svc:80/readyz
+                icon: mdi:wallet
+              - title: Mesa
+                url: https://mesa.saradomin.ftm.dev.br
+                check-url: http://mesa.databases.svc:8080/healthz
+                icon: mdi:database
+              - title: Zitadel
+                url: https://auth.ftm.dev.br
+                check-url: http://zitadel.security.svc:8080/debug/healthz
+                icon: di:zitadel
+              - title: Argo CD
+                url: https://argocd.saradomin.ftm.dev.br
+                check-url: http://argocd-server.argocd.svc:80/healthz
+                icon: di:argo-cd
+              - title: Grafana
+                url: https://grafana.saradomin.ftm.dev.br
+                check-url: http://kube-prometheus-stack-grafana.observability.svc:80/api/health
+                icon: di:grafana
+              - title: AdGuard Home
+                url: https://adguard.saradomin.ftm.dev.br
+                check-url: http://adguard-home.networking.svc:3000/
+                icon: di:adguard-home
+
+      - size: small
+        widgets:
+          # Yahoo Finance: os ativos da B3 levam o sufixo .SA.
+          - type: markets
+            markets:
+              - symbol: MUND11.SA
+                name: MUND11
+              - symbol: USDBRL=X
+                name: Dólar (R$)
+
+          - type: bookmarks
+            groups:
+              - title: saradomin
+                links:
+                  # A NetworkPolicy do qBittorrent só libera a Web UI para Sonarr,
+                  # Radarr e Traefik, então ele fica fora do monitor.
+                  - title: qBittorrent
+                    url: https://qbit.saradomin.ftm.dev.br
+                    icon: di:qbittorrent
+                  - title: Jellyfin (público)
+                    url: https://jellyfin.ftm.dev.br
+                    icon: di:jellyfin
+                  - title: Pedidos (público)
+                    url: https://request.ftm.dev.br
+                    icon: di:jellyseerr
+              - title: zamorak
+                links:
+                  - title: Argo CD
+                    url: https://argocd.ftm.dev.br
+                    icon: di:argo-cd
+                  - title: n8n
+                    url: https://n8n.ftm.dev.br
+                    icon: di:n8n
+                  - title: Vaultwarden
+                    url: https://vault.ftm.dev.br
+                    icon: di:vaultwarden
+              - title: Fora
+                links:
+                  - title: gielinor
+                    url: https://github.com/FelipeMalacarne/gielinor
+                    icon: si:github
+                  - title: Cloudflare
+                    url: https://dash.cloudflare.com
+                    icon: si:cloudflare
+                  - title: Tailscale
+                    url: https://login.tailscale.com/admin/machines
+                    icon: si:tailscale
+                  - title: Oracle Cloud
+                    url: https://cloud.oracle.com
+                    icon: si:oracle
+
+          - type: releases
+            show-source-icon: true
+            cache: 6h
+            collapse-after: 5
+            repositories:
+              - FelipeMalacarne/mesa
+              - glanceapp/glance
+              - k3s-io/k3s
+              - traefik/traefik
+              - argoproj/argo-cd
+              - cloudnative-pg/cloudnative-pg
+              - cert-manager/cert-manager
+              - tailscale/tailscale
+              - zitadel/zitadel
+              - jellyfin/jellyfin
+              - Radarr/Radarr
+              - Sonarr/Sonarr
+
+  - name: Notícias
+    # Sem o slug, o endereço sai com o acento codificado (/not%c3%adcias).
+    slug: noticias
+    columns:
+      - size: small
+        widgets:
+          - type: rss
+            title: Blogs
+            limit: 15
+            collapse-after: 6
+            feeds:
+              - url: https://selfh.st/rss/
+                title: selfh.st
+              - url: https://kubernetes.io/feed.xml
+                title: Kubernetes
+              - url: https://blog.cloudflare.com/rss/
+                title: Cloudflare
+
+      - size: full
+        widgets:
+          - type: group
+            widgets:
+              - type: hacker-news
+                collapse-after: 10
+              - type: lobsters
+                collapse-after: 10
+
+          - type: group
+            define: &reddit
+              type: reddit
+              show-thumbnails: true
+              collapse-after: 8
+            widgets:
+              - subreddit: selfhosted
+                <<: *reddit
+              - subreddit: homelab
+                <<: *reddit
+              - subreddit: kubernetes
+                <<: *reddit
