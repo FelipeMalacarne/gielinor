@@ -8,3 +8,5 @@ metadata:
         path: ksops
 files:
   - secrets.yaml
+  # O chronicle-db-secret num arquivo à parte: acrescentar um app não reabre os outros.
+  - chronicle-db-secrets.yaml

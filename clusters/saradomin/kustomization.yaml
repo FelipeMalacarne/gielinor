@@ -25,6 +25,8 @@ resources:
   - apps/zitadel
   # Console SQL dos bancos do saradomin e do zamorak, só pela LAN e pelo tailnet: apps/mesa/README.md.
   - apps/mesa
+  # Chronicle, o planner do Ironman, só pela tailnet. Passos de ativação: apps/chronicle/README.md.
+  # - apps/chronicle
 
 labels:
   - pairs:

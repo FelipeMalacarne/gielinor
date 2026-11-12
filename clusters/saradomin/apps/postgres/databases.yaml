@@ -40,3 +40,18 @@ spec:
   owner: mesa
 
   databaseReclaimPolicy: retain
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: postgres-main-chronicle
+spec:
+  cluster:
+    name: postgres-main
+
+  # As migrations do goose (initContainer do Chronicle) criam tudo no schema public; ser dono
+  # do banco basta.
+  name: chronicle
+  owner: chronicle
+
+  databaseReclaimPolicy: retain
