@@ -1,10 +1,10 @@
 # Chronicle no saradomin
 
 Este diretório é o lado do cluster do Chronicle, o planner do Ironman
-([FelipeMalacarne/ironman-planner](https://github.com/FelipeMalacarne/ironman-planner), privado):
+([FelipeMalacarne/chronicle](https://github.com/FelipeMalacarne/chronicle), privado):
 
 - a `Application` do Argo CD, apontando para `deploy/k8s/overlays/saradomin` do repositório do planner;
-- em `secrets.yaml` (SOPS): `chronicle-secrets` (o ambiente do app) e `repo-ironman-planner` no
+- em `secrets.yaml` (SOPS): `chronicle-secrets` (o ambiente do app) e `repo-chronicle` no
   `argocd` (deploy key só de leitura, para o Argo ler o repositório privado).
 
 O banco não fica aqui: é o `chronicle` do `postgres-main` (`../postgres`), com o role, o `Database` e a
