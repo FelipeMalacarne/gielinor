@@ -28,7 +28,7 @@ resources:
   # Dashboard inicial (Glance), só pela LAN e pelo tailnet: apps/glance/README.md.
   - apps/glance
   # Chronicle, o planner do Ironman, só pela tailnet. Passos de ativação: apps/chronicle/README.md.
-  # - apps/chronicle
+  - apps/chronicle
 
 labels:
   - pairs:
