@@ -1,10 +1,10 @@
-# Teto do namespace: o app e até 3 workers (doc 11 do planner, seção 7.1: no N95 o limite é a RAM,
-# cabem 3 a 4 workers ao lado do resto do cluster).
+# Teto do namespace: o app e até 3 workers (doc 11 do planner, seções 7.1 e 14.4: com um script
+# rodando o limite do N95 é a CPU, 645m medidos por worker; cabem uns 4 ao lado do resto do cluster).
 #
 #   app (chronicle):  20m / 64Mi   (o initContainer `migrate`, 10m / 16Mi, não soma: um pod pede o
 #                                    maior entre os initContainers e a soma dos containers)
-#   worker (cada):   500m / 1Gi    (limites 1 núcleo / 1792Mi, que a quota não conta)
-#   total:          1520m / 3136Mi -> 1600m / 3328Mi, com folga para o app crescer um pouco
+#   worker (cada):   700m / 1Gi    (limites 1 núcleo / 1792Mi, que a quota não conta)
+#   total:          2120m / 3136Mi -> 2200m / 3328Mi, com folga para o app crescer um pouco
 #
 # Com quota de requests.cpu e requests.memory, todo container do namespace precisa declarar os dois
 # requests (o app e o `migrate` declaram). Um quarto worker não vira um pod Pending: o ReplicaSet
@@ -19,7 +19,7 @@ metadata:
     app.kubernetes.io/name: chronicle
 spec:
   hard:
-    requests.cpu: 1600m
+    requests.cpu: 2200m
     requests.memory: 3328Mi
     # o `chronicle` e três `worker-<conta>`
     count/deployments.apps: "4"
