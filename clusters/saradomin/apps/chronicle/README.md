@@ -1,11 +1,11 @@
 # Chronicle no saradomin
 
 Este diretório é o lado do cluster do Chronicle, o planner do Ironman
-([FelipeMalacarne/chronicle](https://github.com/FelipeMalacarne/chronicle), privado):
+([FelipeMalacarne/chronicle](https://github.com/FelipeMalacarne/chronicle), público desde 2026-11-12):
 
 - a `Application` do Argo CD, apontando para `deploy/k8s/overlays/saradomin` do repositório do planner;
 - em `secrets.yaml` (SOPS): `chronicle-secrets` (o ambiente do app) e `repo-chronicle` no
-  `argocd` (deploy key só de leitura, para o Argo ler o repositório privado);
+  `argocd` (deploy key só de leitura, criada quando o repositório era privado; segue em uso);
 - o lado do cluster dos workers do Microbot (doc 11 do planner, seções 7 e 13), abaixo.
 
 O banco não fica aqui: é o `chronicle` do `postgres-main` (`../postgres`), com o role, o `Database` e a
@@ -73,10 +73,11 @@ Deployments: eles não têm a etiqueta dele. O que é do cluster está aqui:
 3. **Zitadel.** No projeto "Chronicle", as roles `microbot:control` (o Cockpit e os workers na web),
    dada ao dono, e `microbot:agent`, dada só à conta de máquina do agent do zaros (nenhuma pessoa a
    tem; doc 08 do planner). Os workers não usam o Zitadel: o agent deles entra pelo token projetado.
-4. **Imagens.** A primeira `microbot-worker-base` publicada pelo CI do `microbot-plugins` e fixada no
-   planner (`just worker-base-bump <tag>`); o CI do planner passa então a publicar
-   `ghcr.io/felipemalacarne/chronicle-worker:<sha>` e grava `WORKER_IMAGE` no overlay. Os dois pacotes
-   em Public no GHCR (Package settings → Change visibility), como o `chronicle`: o k3s baixa sem login.
+4. **Imagens.** O CI do planner (monorepo desde 2026-11-12: os plugins estão em `microbot/` de lá)
+   publica `ghcr.io/felipemalacarne/chronicle-worker:<sha>` a cada deploy, sobre a
+   `chronicle-worker-base` que ele mesmo monta quando os plugins mudam, e grava `WORKER_IMAGE` no
+   overlay. O `chronicle-worker` em Public no GHCR (Package settings → Change visibility), como o
+   `chronicle`: o k3s baixa sem login. A base só o CI baixa; não precisa ser pública.
 5. **Ligar.** No planner, `WORKERS=on` no overlay (`deploy/k8s/overlays/saradomin`), depois do
    `CHRONICLE_VAULT_KEY` no `chronicle-secrets`: o servidor recusa subir com `WORKERS=on` sem a chave.
 6. **Conferir.** Na web, conectar uma conta e iniciar o worker: `kubectl --context=saradomin -n
