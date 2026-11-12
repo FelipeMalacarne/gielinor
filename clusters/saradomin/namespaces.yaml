@@ -74,3 +74,10 @@ metadata:
   name: dashboard
   labels:
     app.kubernetes.io/part-of: apps
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chronicle
+  labels:
+    app.kubernetes.io/part-of: apps

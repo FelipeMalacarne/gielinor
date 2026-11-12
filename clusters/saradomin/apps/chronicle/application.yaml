@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: chronicle
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # Repositório privado: o Argo lê pela deploy key de repo-ironman-planner (secrets.yaml).
+    # Kustomize puro, sem o plugin ksops: os segredos do app são criados por este repositório.
+    repoURL: git@github.com:FelipeMalacarne/ironman-planner.git
+    targetRevision: main
+    path: deploy/k8s/overlays/saradomin
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: chronicle
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+    syncOptions:
+      - PruneLast=true
