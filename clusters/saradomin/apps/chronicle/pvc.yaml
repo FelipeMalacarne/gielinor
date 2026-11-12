@@ -1,0 +1,25 @@
+# Cache do jogo (`.runelite/jagexcache`) compartilhado pelos workers (doc 11 do planner, seção 7.4).
+# O `ReadWriteOnce` do `local-path` vale por nó, não por pod: todos os workers do saradomin montam
+# este mesmo volume ao mesmo tempo. Um segundo nó teria o próprio PVC; o cache é descartável. O agent
+# serializa os boots com um `flock` no volume, e nada que identifique o aparelho (`random.dat`) pode
+# cair aqui.
+#
+# O `local-path` só cria o diretório no primeiro pod que o monta (WaitForFirstConsumer), então o PVC
+# fica Pending até o primeiro worker. O volume é um hostPath, que ignora o `fsGroup`: o provisioner
+# do k3s cria o diretório com 0777, o que basta para o usuário 65532 dos workers.
+# O Chronicle só referencia este PVC pelo nome (a ValidatingAdmissionPolicy confere).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: microbot-game-cache
+  namespace: chronicle
+  labels:
+    app.kubernetes.io/name: chronicle
+    app.kubernetes.io/component: worker
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi

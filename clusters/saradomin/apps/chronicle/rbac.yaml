@@ -1,0 +1,50 @@
+# O servidor (SA chronicle) cria, atualiza e apaga os Deployments `worker-<conta>` e lê os pods
+# deles. Nada em secrets. Quais Deployments ele pode tocar é a ValidatingAdmissionPolicy
+# (admission.yaml) que decide: só os com a etiqueta `component: worker`, nunca o do próprio app.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: chronicle-workers
+  namespace: chronicle
+  labels:
+    app.kubernetes.io/name: chronicle
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["create", "delete", "get", "list", "watch", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chronicle-workers
+  namespace: chronicle
+  labels:
+    app.kubernetes.io/name: chronicle
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: chronicle-workers
+subjects:
+  - kind: ServiceAccount
+    name: chronicle
+    namespace: chronicle
+---
+# TokenReview: o servidor confere o token projetado que o agent de cada worker apresenta no link
+# (audiência `chronicle`) e lê dele o pod e, pelo pod, a conta.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: chronicle-auth-delegator
+  labels:
+    app.kubernetes.io/name: chronicle
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: chronicle
+    namespace: chronicle

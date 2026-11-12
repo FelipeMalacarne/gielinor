@@ -1,0 +1,157 @@
+# O que o servidor (SA chronicle) pode escrever em Deployments (doc 11 do planner, seções 7, 7.4 e
+# 13.3). O RBAC (rbac.yaml) dá os verbos; esta política diz em quais objetos e com que forma:
+#
+# - só Deployments `worker-*` com `component: worker` e a conta na etiqueta, antes e depois de um
+#   UPDATE e no DELETE (pelo `oldObject`). O Deployment `chronicle` do app não tem essa etiqueta,
+#   então a SA não consegue alterá-lo nem apagá-lo;
+# - o pod roda como `chronicle-worker`, sem o token da API montado, com a imagem chronicle-worker;
+# - um pod por conta (`replicas <= 1`, `Recreate`): dois clientes logados na mesma conta derrubam
+#   um ao outro;
+# - volumes só `emptyDir`, o token projetado de audiência `chronicle` e o PVC
+#   `microbot-game-cache` pelo nome; nenhuma referência a Secret (env, envFrom, imagePullSecrets):
+#   a SA não lê secrets, e um pod criado por ela também não pode lê-los por ela;
+# - nada do host: hostNetwork, hostPID, hostIPC, hostPort, privileged ou capabilities.add.
+#
+# Pedidos de outros usuários (o Argo, o controller de Deployments, o dono pelo kubectl) não passam
+# por aqui.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: chronicle-workers
+  labels:
+    app.kubernetes.io/name: chronicle
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE", "DELETE"]
+        resources: ["deployments"]
+  matchConditions:
+    - name: server-service-account
+      expression: request.userInfo.username == 'system:serviceaccount:chronicle:chronicle'
+  variables:
+    - name: isDelete
+      expression: request.operation == 'DELETE'
+    # No DELETE só existe o oldObject.
+    - name: target
+      expression: "request.operation == 'DELETE' ? oldObject : object"
+    - name: spec
+      expression: object.spec.template.spec
+    - name: containers
+      expression: >-
+        variables.spec.containers +
+        (has(variables.spec.initContainers) ? variables.spec.initContainers : [])
+    - name: image
+      expression: "'ghcr.io/felipemalacarne/chronicle-worker'"
+  validations:
+    # --- identidade do objeto (também no DELETE) -------------------------------------------
+    - expression: >-
+        has(variables.target.metadata.labels) &&
+        'app.kubernetes.io/component' in variables.target.metadata.labels &&
+        variables.target.metadata.labels['app.kubernetes.io/component'] == 'worker' &&
+        'chronicle.ftm.dev.br/account' in variables.target.metadata.labels &&
+        variables.target.metadata.labels['chronicle.ftm.dev.br/account'] != ''
+      message: the chronicle service account only manages Deployments labelled app.kubernetes.io/component=worker with a chronicle.ftm.dev.br/account label
+      reason: Forbidden
+    - expression: variables.target.metadata.name.startsWith('worker-')
+      message: worker Deployments are named worker-<account>
+      reason: Forbidden
+    # Um UPDATE não transforma outro Deployment em worker nem troca a conta de um.
+    - expression: >-
+        request.operation != 'UPDATE' || (
+          has(oldObject.metadata.labels) &&
+          'app.kubernetes.io/component' in oldObject.metadata.labels &&
+          oldObject.metadata.labels['app.kubernetes.io/component'] == 'worker' &&
+          'chronicle.ftm.dev.br/account' in oldObject.metadata.labels &&
+          oldObject.metadata.labels['chronicle.ftm.dev.br/account'] ==
+            object.metadata.labels['chronicle.ftm.dev.br/account'])
+      message: only an existing worker Deployment can be updated, and its account label is immutable
+      reason: Forbidden
+    # O seletor e o template também são de worker: o Deployment não adota os pods do web.
+    - expression: >-
+        variables.isDelete || (
+          has(object.spec.selector.matchLabels) &&
+          'app.kubernetes.io/component' in object.spec.selector.matchLabels &&
+          object.spec.selector.matchLabels['app.kubernetes.io/component'] == 'worker' &&
+          has(object.spec.template.metadata.labels) &&
+          'chronicle.ftm.dev.br/account' in object.spec.template.metadata.labels &&
+          object.spec.template.metadata.labels['chronicle.ftm.dev.br/account'] ==
+            object.metadata.labels['chronicle.ftm.dev.br/account'])
+      message: the selector must select component=worker and the pod template must carry the Deployment's account label
+      reason: Forbidden
+    # --- forma do Deployment ---------------------------------------------------------------
+    - expression: variables.isDelete || (has(object.spec.replicas) && object.spec.replicas <= 1)
+      message: a worker runs at most one replica (one client per account)
+    - expression: >-
+        variables.isDelete || (has(object.spec.strategy) && has(object.spec.strategy.type) &&
+        object.spec.strategy.type == 'Recreate')
+      message: a worker Deployment uses strategy.type Recreate (never two clients of one account at once)
+    # --- identidade do pod -----------------------------------------------------------------
+    - expression: >-
+        variables.isDelete || (
+          has(variables.spec.serviceAccountName) &&
+          variables.spec.serviceAccountName == 'chronicle-worker' &&
+          (!has(variables.spec.serviceAccount) || variables.spec.serviceAccount == 'chronicle-worker'))
+      message: worker pods run as the chronicle-worker service account
+      reason: Forbidden
+    - expression: >-
+        variables.isDelete || (has(variables.spec.automountServiceAccountToken) &&
+        variables.spec.automountServiceAccountToken == false)
+      message: worker pods set automountServiceAccountToken false (only the projected token)
+      reason: Forbidden
+    - expression: >-
+        variables.isDelete || variables.containers.all(c,
+          c.image.startsWith(variables.image + ':') || c.image.startsWith(variables.image + '@'))
+      message: worker containers run ghcr.io/felipemalacarne/chronicle-worker only
+      reason: Forbidden
+    # --- volumes e segredos ----------------------------------------------------------------
+    - expression: >-
+        variables.isDelete || !has(variables.spec.volumes) || variables.spec.volumes.all(v,
+          has(v.emptyDir) ||
+          (has(v.persistentVolumeClaim) && v.persistentVolumeClaim.claimName == 'microbot-game-cache') ||
+          (has(v.projected) && has(v.projected.sources) && v.projected.sources.all(s,
+            has(s.serviceAccountToken) && has(s.serviceAccountToken.audience) &&
+            s.serviceAccountToken.audience == 'chronicle')))
+      message: worker volumes are emptyDir, the projected serviceAccountToken of audience chronicle or the PVC microbot-game-cache
+      reason: Forbidden
+    - expression: >-
+        variables.isDelete || (
+          (!has(variables.spec.imagePullSecrets) || size(variables.spec.imagePullSecrets) == 0) &&
+          variables.containers.all(c,
+            (!has(c.envFrom) || c.envFrom.all(e, !has(e.secretRef))) &&
+            (!has(c.env) || c.env.all(e, !has(e.valueFrom) || !has(e.valueFrom.secretKeyRef)))))
+      message: worker pods reference no Secret
+      reason: Forbidden
+    # --- nada do host ----------------------------------------------------------------------
+    - expression: >-
+        variables.isDelete || (
+          !(has(variables.spec.hostNetwork) && variables.spec.hostNetwork) &&
+          !(has(variables.spec.hostPID) && variables.spec.hostPID) &&
+          !(has(variables.spec.hostIPC) && variables.spec.hostIPC))
+      message: worker pods use no host namespace (hostNetwork, hostPID, hostIPC)
+      reason: Forbidden
+    - expression: >-
+        variables.isDelete || variables.containers.all(c,
+          (!has(c.securityContext) || (
+            (!has(c.securityContext.privileged) || c.securityContext.privileged == false) &&
+            (!has(c.securityContext.capabilities) || !has(c.securityContext.capabilities.add) ||
+              size(c.securityContext.capabilities.add) == 0))) &&
+          (!has(c.ports) || c.ports.all(p, !has(p.hostPort) || p.hostPort == 0)))
+      message: worker containers are not privileged, add no capabilities and bind no hostPort
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: chronicle-workers
+  labels:
+    app.kubernetes.io/name: chronicle
+spec:
+  policyName: chronicle-workers
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: chronicle
