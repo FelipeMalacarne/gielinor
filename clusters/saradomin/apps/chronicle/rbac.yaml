@@ -1,6 +1,9 @@
 # O servidor (SA chronicle) cria, atualiza e apaga os Deployments `worker-<conta>` e lê os pods
 # deles. Nada em secrets. Quais Deployments ele pode tocar é a ValidatingAdmissionPolicy
 # (admission.yaml) que decide: só os com a etiqueta `component: worker`, nunca o do próprio app.
+# Para a capacidade da frota (doc 11 do planner, F7) ele também lê a quota do namespace ("cabe mais
+# N workers") e o uso de CPU e memória de cada pod no metrics-server; sem essas regras, a web só
+# deixa de mostrar esses números.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -15,6 +18,12 @@ rules:
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["resourcequotas"]
+    verbs: ["get", "list"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods"]
+    verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

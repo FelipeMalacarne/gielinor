@@ -50,9 +50,9 @@ Deployments: eles não têm a etiqueta dele. O que é do cluster está aqui:
 | Arquivo | O quê |
 |---|---|
 | `serviceaccounts.yaml` | `chronicle` (o servidor) e `chronicle-worker` (os pods worker: nenhuma permissão, `automountServiceAccountToken: false`) |
-| `rbac.yaml` | Role `chronicle-workers` (Deployments: create, delete, get, list, watch, patch, update; pods: get, list, watch; nada em secrets) e `system:auth-delegator` para a TokenReview do token projetado |
+| `rbac.yaml` | Role `chronicle-workers` (Deployments: create, delete, get, list, watch, patch, update; pods: get, list, watch; resourcequotas e `pods.metrics.k8s.io`: get, list, para a capacidade e o uso por worker; nada em secrets) e `system:auth-delegator` para a TokenReview do token projetado |
 | `admission.yaml` | ValidatingAdmissionPolicy: o que a SA `chronicle` escreve em Deployments só pode ser um worker (etiquetas, SA, imagem, `replicas <= 1`, `Recreate`, volumes, nada do host nem de Secrets); o Deployment do próprio app fica fora do alcance dela |
-| `quota.yaml` | ResourceQuota: o app e até 3 workers (500m e 1Gi de requests cada) e 4 Deployments |
+| `quota.yaml` | ResourceQuota: o app e até 3 workers (700m e 1Gi de requests cada) e 4 Deployments; o servidor lê ela para dizer quantos workers ainda cabem |
 | `networkpolicy.yaml` | os workers não recebem conexão e saem só para o DNS, o servidor e a internet (sem LAN, rede do cluster nem tailnet) |
 | `pvc.yaml` | `microbot-game-cache`, o cache do jogo compartilhado (`local-path`, 2Gi) |
 
