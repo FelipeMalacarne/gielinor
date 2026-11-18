@@ -78,6 +78,16 @@ spec:
       # a extensão em si é criada pelo Database de cada app (apps/mapa/database.yaml).
       pg_stat_statements.max: "5000"
       pg_stat_statements.track: "top"
+      # auto_explain (2026-11-18): o pg_stat_statements mostrou que o count(*) e as duas
+      # listagens de questions fazem ~90% das leituras fora do shared_buffers, mas a média
+      # por chamada esconde quais parâmetros viram scan grande. O plano com BUFFERS das
+      # chamadas acima de 100 ms vai para o log do pod. Com log_timing desligado o custo é
+      # só contar linhas e buffers. Como no pg_stat_statements, o CNPG põe a biblioteca em
+      # shared_preload_libraries (pede restart). Tirar depois de coletar os planos.
+      auto_explain.log_min_duration: "100ms"
+      auto_explain.log_analyze: "on"
+      auto_explain.log_buffers: "on"
+      auto_explain.log_timing: "off"
 
   resources:
     requests:
