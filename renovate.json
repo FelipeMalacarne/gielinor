@@ -6,9 +6,9 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "n8n: a versão vem dos releases do GitHub, não do Docker Hub, que publica as betas (2.49.x, 3.x) com tags iguais às estáveis. O GitHub marca as betas como pre-release, e o Renovate pula pre-releases.",
+      "description": "n8n e o sidecar n8nio/runners, sempre na mesma versão (um PR para os dois): a versão vem dos releases do GitHub, não do Docker Hub, que publica as betas (2.49.x, 3.x) com tags iguais às estáveis. O GitHub marca as betas como pre-release, e o Renovate pula pre-releases.",
       "managerFilePatterns": ["/^clusters/saradomin/apps/n8n/deployment\\.yaml$/"],
-      "matchStrings": ["image: docker\\.io/n8nio/n8n:(?<currentValue>\\d+\\.\\d+\\.\\d+)\\s"],
+      "matchStrings": ["image: docker\\.io/n8nio/(?:n8n|runners):(?<currentValue>\\d+\\.\\d+\\.\\d+)\\s"],
       "datasourceTemplate": "github-releases",
       "depNameTemplate": "n8n-io/n8n",
       "extractVersionTemplate": "^n8n@(?<version>.+)$",

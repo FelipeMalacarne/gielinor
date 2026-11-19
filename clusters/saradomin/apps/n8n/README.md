@@ -33,8 +33,12 @@ antes do merge. As migrations do n8n não têm volta, e o caminho de volta é o 
 
 ## Notas da 2.x
 
-- O Code node roda num task runner interno, no mesmo pod. Python precisa do runner externo
-  (imagem `n8nio/runners`), que não está configurado aqui.
+- O Code node roda no sidecar `task-runners` (imagem `n8nio/runners`, na mesma versão do n8n),
+  que se liga ao broker em `localhost:5679` com o `N8N_RUNNERS_AUTH_TOKEN` de `n8n-secrets`. O
+  sidecar roda JavaScript e Python, cada um com uma allowlist própria de módulos
+  (`/etc/n8n-task-runners.json` da imagem). Por padrão, o JavaScript libera só `crypto` e
+  `moment`, e o Python não libera nenhum.
 - Os nodes Execute Command e Local File Trigger vêm desligados (`NODES_EXCLUDE`). O Read/Write
   Files só alcança `~/.n8n-files`. O Code node não lê variáveis de ambiente
   (`N8N_BLOCK_ENV_ACCESS_IN_NODE`).
+- Community nodes: só os verificados pelo n8n (`N8N_UNVERIFIED_PACKAGES_ENABLED=false`).
