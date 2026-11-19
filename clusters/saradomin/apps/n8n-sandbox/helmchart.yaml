@@ -1,0 +1,15 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: n8n-sandbox
+  namespace: n8n-sandbox
+spec:
+  chart: oci://ghcr.io/n8n-io/n8n-sandbox-service/n8n-sandbox-service
+  # Imagens 1.16.0 (o appVersion do chart).
+  version: 0.14.1
+  targetNamespace: n8n-sandbox
+  createNamespace: false
+  valuesSecrets:
+    - name: n8n-sandbox-values
+      keys:
+        - values.yaml

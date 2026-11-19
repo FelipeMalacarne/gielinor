@@ -1,0 +1,48 @@
+# Saída do runner, e com ela a dos sandboxes: o Docker interno faz NAT pelo IP do pod, então a
+# regra vale para o código que o Assistant roda. O chart só restringe a entrada (values.yaml).
+#
+# - O DNS do cluster.
+# - A API do sandbox, no gRPC de registro (a regra vale depois da tradução do Service).
+# - A internet (pacotes, a imagem do sandbox no Docker Hub), nunca a LAN, a rede do cluster,
+#   a tailnet ou o link-local.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: n8n-sandbox-runner-egress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: n8n-sandbox-service
+      app.kubernetes.io/component: privileged-runner
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: n8n-sandbox-service
+              app.kubernetes.io/component: api
+      ports:
+        - protocol: TCP
+          port: 9090
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16

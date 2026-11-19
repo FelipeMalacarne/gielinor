@@ -1,0 +1,33 @@
+# CA própria para o mTLS entre a API e o runner. O chart pede os quatro certificados a
+# n8n-sandbox-ca (values.yaml); nada fora deste namespace confia nela.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: n8n-sandbox-selfsigned
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: n8n-sandbox-ca
+spec:
+  isCA: true
+  commonName: n8n-sandbox-ca
+  secretName: n8n-sandbox-ca
+  duration: 87600h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: n8n-sandbox-selfsigned
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: n8n-sandbox-ca
+spec:
+  ca:
+    secretName: n8n-sandbox-ca
