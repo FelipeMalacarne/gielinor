@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# SearXNG, a busca na web do n8n Assistant. Só dentro do cluster, para o pod do n8n: README.md.
+namespace: automation
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml
+
+# Com o hash no nome, mudar o settings.yml reinicia o pod.
+configMapGenerator:
+  - name: searxng-config
+    files:
+      - settings.yml
+
+generators:
+  - ksops.yaml

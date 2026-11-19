@@ -33,6 +33,8 @@ resources:
   - apps/n8n
   # O sandbox do n8n Assistant, só dentro do cluster: apps/n8n-sandbox/README.md.
   - apps/n8n-sandbox
+  # A busca na web do n8n Assistant, só dentro do cluster: apps/searxng/README.md.
+  - apps/searxng
 
 labels:
   - pairs:

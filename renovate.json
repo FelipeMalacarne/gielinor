@@ -13,6 +13,14 @@
       "depNameTemplate": "n8n-io/n8n",
       "extractVersionTemplate": "^n8n@(?<version>.+)$",
       "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "SearXNG: tags com data e commit (2026.11.19-368baa340), comparadas pela data; o digest vem junto.",
+      "managerFilePatterns": ["/^clusters/saradomin/apps/searxng/deployment\\.yaml$/"],
+      "matchStrings": ["image: docker\\.io/(?<depName>searxng/searxng):(?<currentValue>\\S+)@(?<currentDigest>sha256:[a-f0-9]+)"],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "regex:^(?<major>\\d{4})\\.(?<minor>\\d{1,2})\\.(?<patch>\\d{1,2})-[0-9a-f]+$"
     }
   ],
   "packageRules": [
@@ -20,6 +28,13 @@
       "description": "Minor e patch do n8n entram sozinhos (o repositório não tem CI, daí o ignoreTests). Major fica num PR esperando revisão.",
       "matchDepNames": ["n8n-io/n8n"],
       "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "ignoreTests": true
+    },
+    {
+      "description": "SearXNG sai quase todo dia, e os buscadores quebram os scrapers dele: um PR por semana, com automerge.",
+      "matchDepNames": ["searxng/searxng"],
+      "schedule": ["* 0-5 * * 1"],
       "automerge": true,
       "ignoreTests": true
     }

@@ -1,0 +1,20 @@
+# Só o que muda em relação aos padrões do SearXNG. A secret_key vem de SEARXNG_SECRET (secrets.yaml).
+use_default_settings: true
+
+general:
+  instance_name: saradomin
+  # O Wikipedia e o Wikidata só ligam com um contato (a política da Wikimedia para clientes).
+  contact_url: https://github.com/FelipeMalacarne/gielinor
+
+search:
+  # O n8n Assistant consulta /search?format=json; sem json na lista, a API responde 403.
+  formats:
+    - html
+    - json
+
+server:
+  # Só o n8n consulta, de dentro do cluster: sem limiter (que pediria um Valkey) e sem a
+  # página pública.
+  limiter: false
+  public_instance: false
+  image_proxy: false

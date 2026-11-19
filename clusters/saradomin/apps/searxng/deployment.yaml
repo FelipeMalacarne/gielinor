@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searxng
+  labels:
+    app.kubernetes.io/name: searxng
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: searxng
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: searxng
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 977
+        runAsGroup: 977
+        fsGroup: 977
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: searxng
+          # Atualizado pelo Renovate (renovate.json na raiz), uma vez por semana.
+          image: docker.io/searxng/searxng:2026.11.19-368baa340@sha256:5b72d7ef63a3d214c2a690016ecf53a17f1ab7f02dcc4a1de1669837d9340fc9
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SEARXNG_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: searxng-secrets
+                  key: SEARXNG_SECRET
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: config
+              mountPath: /etc/searxng
+              readOnly: true
+            - name: cache
+              mountPath: /var/cache/searxng
+      volumes:
+        - name: config
+          configMap:
+            name: searxng-config
+        - name: cache
+          emptyDir:
+            sizeLimit: 1Gi
