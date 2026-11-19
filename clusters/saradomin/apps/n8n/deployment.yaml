@@ -90,6 +90,9 @@ spec:
                 secretKeyRef:
                   name: n8n-secrets
                   key: N8N_SANDBOX_SERVICE_API_KEY
+            # A busca na web do Assistant (../searxng).
+            - name: N8N_INSTANCE_AI_SEARXNG_URL
+              value: http://searxng.automation.svc:8080
             - name: N8N_ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:

@@ -35,7 +35,8 @@ antes do merge. As migrations do n8n não têm volta, e o caminho de volta é o 
 
 O sandbox onde o Assistant roda código é o `../n8n-sandbox`. O n8n chega nele por
 `N8N_SANDBOX_SERVICE_URL`, com a chave `N8N_SANDBOX_SERVICE_API_KEY` de `n8n-secrets`, que é a
-mesma do `api-keys` em `../n8n-sandbox/secrets.yaml`. A chave do modelo foi posta pela interface
+mesma do `api-keys` em `../n8n-sandbox/secrets.yaml`. A busca na web é o SearXNG de
+`../searxng` (`N8N_INSTANCE_AI_SEARXNG_URL`). A chave do modelo foi posta pela interface
 (Settings › Assistant) e fica no banco, cifrada pela `N8N_ENCRYPTION_KEY`.
 
 ## Notas da 2.x
