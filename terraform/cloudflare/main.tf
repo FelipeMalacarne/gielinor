@@ -28,10 +28,6 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "zamorak_tunnel_confi
   config = {
     ingress = [
       {
-        hostname = "n8n.${var.zone}"
-        service  = "http://traefik.kube-system.svc.cluster.local:80"
-      },
-      {
         hostname = "whoami.${var.zone}"
         service  = "http://traefik.kube-system.svc.cluster.local:80"
       },
@@ -162,16 +158,6 @@ resource "cloudflare_dns_record" "vault_dns" {
   comment = "[terraform] zamorak vaultwarden"
 }
 
-resource "cloudflare_dns_record" "n8n_dns" {
-  zone_id = var.zone_id
-  name    = "n8n.${var.zone}"
-  content = "${cloudflare_zero_trust_tunnel_cloudflared.zamorak_tunnel.id}.cfargotunnel.com"
-  type    = "CNAME"
-  ttl     = 1
-  proxied = true
-  comment = "[terraform] zamorak n8n"
-}
-
 resource "cloudflare_dns_record" "argocd_dns" {
   zone_id = var.zone_id
   name    = "argocd.${var.zone}"
@@ -264,6 +250,10 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "saradomin_tunnel_con
         service  = "http://traefik.networking.svc.cluster.local:80"
       },
       {
+        hostname = "n8n.${var.zone}"
+        service  = "http://traefik.networking.svc.cluster.local:80"
+      },
+      {
         service = "http_status:404"
       }
     ]
@@ -331,4 +321,16 @@ resource "cloudflare_dns_record" "auth_saradomin_dns" {
   ttl     = 1
   proxied = true
   comment = "[terraform] saradomin zitadel"
+}
+
+# n8n (clusters/saradomin/apps/n8n), sem Access na frente: os webhooks precisam chegar de fora.
+# O editor se protege com o login do próprio n8n.
+resource "cloudflare_dns_record" "n8n_dns" {
+  zone_id = var.zone_id
+  name    = "n8n.${var.zone}"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.saradomin_tunnel.id}.cfargotunnel.com"
+  type    = "CNAME"
+  ttl     = 1
+  proxied = true
+  comment = "[terraform] saradomin n8n"
 }

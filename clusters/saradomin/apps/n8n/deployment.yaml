@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+  labels:
+    app.kubernetes.io/name: n8n
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: n8n
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: n8n
+    spec:
+      automountServiceAccountToken: false
+      # O Service `n8n` injetaria N8N_PORT=tcp://…, que o n8n lê como a própria configuração.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: n8n
+          # Versão exata, atualizada pelo Renovate (renovate.json na raiz) a partir dos releases
+          # estáveis do GitHub. Sem digest: essa fonte não tem o digest da imagem.
+          image: docker.io/n8nio/n8n:2.48.6
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5678
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: GENERIC_TIMEZONE
+              value: America/Sao_Paulo
+            - name: TZ
+              value: America/Sao_Paulo
+            - name: N8N_HOST
+              value: n8n.ftm.dev.br
+            - name: N8N_PORT
+              value: "5678"
+            - name: N8N_PROTOCOL
+              value: https
+            - name: WEBHOOK_URL
+              value: https://n8n.ftm.dev.br/
+            - name: N8N_EDITOR_BASE_URL
+              value: https://n8n.ftm.dev.br/
+            # Atrás do Traefik: o IP do cliente vem no X-Forwarded-For.
+            - name: N8N_PROXY_HOPS
+              value: "1"
+            - name: N8N_DIAGNOSTICS_ENABLED
+              value: "false"
+            - name: N8N_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secrets
+                  key: N8N_ENCRYPTION_KEY
+            - name: DB_TYPE
+              value: postgresdb
+            - name: DB_POSTGRESDB_HOST
+              value: postgres-main-rw.databases.svc
+            - name: DB_POSTGRESDB_PORT
+              value: "5432"
+            - name: DB_POSTGRESDB_DATABASE
+              value: n8n
+            - name: DB_POSTGRESDB_USER
+              value: n8n
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secrets
+                  key: DB_POSTGRESDB_PASSWORD
+            # O equivalente a sslmode=require: o CNPG serve TLS com uma CA própria.
+            - name: DB_POSTGRESDB_SSL_ENABLED
+              value: "true"
+            - name: DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED
+              value: "false"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1536Mi
+          # A primeira subida roda todas as migrations no banco vazio.
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz/readiness
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: data
+              mountPath: /home/node/.n8n
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: n8n-data

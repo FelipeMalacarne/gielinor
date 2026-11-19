@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# n8n, público em n8n.ftm.dev.br pelo túnel do saradomin. O banco é o `n8n` do postgres-main
+# compartilhado (../postgres), não um Postgres próprio. Detalhes: README.md.
+namespace: automation
+
+resources:
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+
+generators:
+  - ksops.yaml
