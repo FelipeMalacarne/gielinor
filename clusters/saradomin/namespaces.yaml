@@ -81,3 +81,12 @@ metadata:
   name: chronicle
   labels:
     app.kubernetes.io/part-of: apps
+---
+# O runner do sandbox do n8n é privileged: apps/n8n-sandbox/README.md.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: n8n-sandbox
+  labels:
+    app.kubernetes.io/part-of: apps
+    pod-security.kubernetes.io/enforce: privileged

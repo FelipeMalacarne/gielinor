@@ -31,6 +31,13 @@ antes do merge. As migrations do n8n não têm volta, e o caminho de volta é o 
 3. **Dono.** Abra `https://n8n.ftm.dev.br` e crie a conta de dono. Até essa conta existir, quem
    abrir o endereço primeiro cria o dono, então faça isso logo depois do deploy.
 
+## n8n Assistant
+
+O sandbox onde o Assistant roda código é o `../n8n-sandbox`. O n8n chega nele por
+`N8N_SANDBOX_SERVICE_URL`, com a chave `N8N_SANDBOX_SERVICE_API_KEY` de `n8n-secrets`, que é a
+mesma do `api-keys` em `../n8n-sandbox/secrets.yaml`. A chave do modelo foi posta pela interface
+(Settings › Assistant) e fica no banco, cifrada pela `N8N_ENCRYPTION_KEY`.
+
 ## Notas da 2.x
 
 - O Code node roda no sidecar `task-runners` (imagem `n8nio/runners`, na mesma versão do n8n),

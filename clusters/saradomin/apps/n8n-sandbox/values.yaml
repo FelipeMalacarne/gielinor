@@ -1,0 +1,64 @@
+# Values do chart n8n-sandbox-service (oci://ghcr.io/n8n-io/n8n-sandbox-service). As chaves ficam
+# no Secret n8n-sandbox-auth (secrets.yaml, SOPS), fora destes values. Por que user namespaces e
+# não Sysbox: README.md.
+fullnameOverride: n8n-sandbox
+
+auth:
+  existingSecret: n8n-sandbox-auth
+
+# mTLS entre a API e o runner, com a CA própria do namespace (ca.yaml).
+tls:
+  mode: certManager
+  certManager:
+    issuerRef:
+      name: n8n-sandbox-ca
+      kind: Issuer
+      group: cert-manager.io
+
+# Ingress da API e do runner. A saída do runner fica em networkpolicy.yaml.
+networkPolicy:
+  enabled: true
+  api:
+    httpIngressFrom:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: automation
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/name: n8n
+
+api:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  persistence:
+    storageClass: local-path
+
+dataPlane:
+  mode: in-cluster
+
+runner:
+  # Docker-in-Docker privileged, sem Sysbox nem user namespace: o porquê está no README.md. O
+  # código do Assistant roda nos containers que o runner cria, com --cap-drop ALL e
+  # no-new-privileges, nunca no próprio runner.
+  isolation: privileged
+  acknowledgePrivileged: true
+  # Sem PVC para o Docker interno: um emptyDir com limite.
+  dockerDataRoot:
+    emptyDir:
+      sizeLimit: 20Gi
+  config:
+    # Uso de uma pessoa: poucos sandboxes de 512 MB.
+    capacityTotal: "4"
+    defaultMemoryMb: "512"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 3Gi

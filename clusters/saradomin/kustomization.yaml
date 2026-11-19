@@ -31,6 +31,8 @@ resources:
   - apps/chronicle
   # n8n, público em n8n.ftm.dev.br (túnel no Terraform): apps/n8n/README.md.
   - apps/n8n
+  # O sandbox do n8n Assistant, só dentro do cluster: apps/n8n-sandbox/README.md.
+  - apps/n8n-sandbox
 
 labels:
   - pairs:
