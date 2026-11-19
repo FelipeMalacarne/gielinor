@@ -1,0 +1,14 @@
+# /home/node/.n8n: o config local e os binários das execuções (modo filesystem, o padrão da 2.x).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: n8n-data
+  labels:
+    app.kubernetes.io/name: n8n
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi

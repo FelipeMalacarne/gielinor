@@ -28,6 +28,12 @@ spec:
         login: true
         passwordSecret:
           name: chronicle-db-secret
+      # n8n (../n8n). Senha em n8n-db-secrets.yaml.
+      - name: n8n
+        ensure: present
+        login: true
+        passwordSecret:
+          name: n8n-db-secret
       # Mesa, o console SQL dos dois clusters (../mesa). Superusuário para administrar roles,
       # bancos e sessões; as escritas passam pela revisão do Mesa (produção só lê até
       # destravar, com o nome digitado). É também dono do banco mesa, onde o Mesa guarda os

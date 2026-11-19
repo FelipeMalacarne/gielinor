@@ -55,3 +55,17 @@ spec:
   owner: chronicle
 
   databaseReclaimPolicy: retain
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: postgres-main-n8n
+spec:
+  cluster:
+    name: postgres-main
+
+  # As migrations do n8n criam tudo no schema public na primeira subida; ser dono do banco basta.
+  name: n8n
+  owner: n8n
+
+  databaseReclaimPolicy: retain

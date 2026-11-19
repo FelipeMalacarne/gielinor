@@ -407,6 +407,7 @@ pages:
               - cert-manager/cert-manager
               - tailscale/tailscale
               - zitadel/zitadel
+              - n8n-io/n8n
               - jellyfin/jellyfin
               - Radarr/Radarr
               - Sonarr/Sonarr
