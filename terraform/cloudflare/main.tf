@@ -53,6 +53,13 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "zamorak_tunnel_confi
         service  = "http://traefik.kube-system.svc.cluster.local:80"
       },
       {
+        # O MCP de admin do mapa (só /mcp e a metadata OAuth, pelo Ingress do mapa), para o
+        # conector do Claude. Fora da zona do mapa pelo mesmo motivo do healthz; o token do
+        # Zitadel e a allowlist de sub ficam no próprio mapa.
+        hostname = "mapa-mcp.${var.zone}"
+        service  = "http://traefik.kube-system.svc.cluster.local:80"
+      },
+      {
         service = "http_status:404"
       }
     ]
@@ -77,6 +84,16 @@ resource "cloudflare_dns_record" "mapa_healthz_dns" {
   ttl     = 1
   proxied = true
   comment = "[terraform] zamorak mapa-do-acerto api /healthz (release do CI)"
+}
+
+resource "cloudflare_dns_record" "mapa_mcp_dns" {
+  zone_id = var.zone_id
+  name    = "mapa-mcp.${var.zone}"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.zamorak_tunnel.id}.cfargotunnel.com"
+  type    = "CNAME"
+  ttl     = 1
+  proxied = true
+  comment = "[terraform] zamorak mapa-do-acerto MCP de admin"
 }
 
 # O apex é custom domain do Worker mapa-web (wrangler.jsonc no repo do mapa). O `www` só
