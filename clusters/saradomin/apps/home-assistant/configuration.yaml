@@ -1,16 +1,10 @@
-# O resto da configuração (local, integrações, usuários) é feito pela interface e fica no PVC.
+# O resto da configuração (local, integrações, usuários e a rede) é feito pela interface e fica no PVC.
 default_config:
 
 # Os editores da interface gravam nestes arquivos; o initContainer cria os que faltarem.
 automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
-
-# O Traefik chega pelo IP do pod, na rede de pods do K3s.
-http:
-  use_x_forwarded_for: true
-  trusted_proxies:
-    - 10.42.0.0/16
 
 # Liga o zaros pelo Wake-on-LAN, suspende pelo SSH e mostra se ele está ligado pelo ping.
 switch:

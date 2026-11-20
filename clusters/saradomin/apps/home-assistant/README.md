@@ -16,10 +16,16 @@ como faz com a interface do AdGuard. Sem essa regra, o Ingress responde 504.
 ## Configuração
 
 O `configuration.yaml` está no Git e entra no pod por um ConfigMap, montado só leitura. Ele tem o
-que precisa existir antes da interface: o Traefik como proxy confiável e o switch do zaros. O resto
-(local, integrações, usuários, automações) é feito pela interface e fica no PVC
-`home-assistant-data`. Os editores de automações, scripts e cenas gravam em `automations.yaml`,
-`scripts.yaml` e `scenes.yaml`, e o initContainer cria esses arquivos se faltarem.
+switch do zaros. O resto (local, integrações, usuários, automações e a rede) é feito pela interface
+e fica no PVC `home-assistant-data`. Os editores de automações, scripts e cenas gravam em
+`automations.yaml`, `scripts.yaml` e `scenes.yaml`, e o initContainer cria esses arquivos se
+faltarem.
+
+Desde a 2026.11, a configuração HTTP fica em Configurações › Sistema › Rede, e não no YAML. Lá estão
+o `X-Forwarded-For` ligado e a rede de pods (`10.42.0.0/16`) como proxy confiável, porque o Traefik
+chega pelo IP do pod. Num PVC novo, sem essa configuração, o Home Assistant responde 400 a tudo que
+passa pelo Traefik. Nesse caso, abra `http://100.106.58.87:8123` pelo tailnet (o firewall do
+saradomin confia no `tailscale0`) e configure a rede por lá.
 
 O switch `zaros` liga o zaros pelo Wake-on-LAN, suspende pelo SSH e mostra o estado pelo ping em
 `10.10.0.20`. Esse IP precisa ser fixo no DHCP do roteador; se mudar, o switch mostra o zaros
