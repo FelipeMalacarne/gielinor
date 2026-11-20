@@ -41,3 +41,6 @@ Ele só liga quando o `mapa-env` tem estas três chaves:
 
 O issuer e a URL pública ficam no ConfigMap do overlay. Para desligar o MCP, apague
 `MCP_ALLOWED_SUBJECTS`.
+
+O `mapa-api` e o `mapa-worker` têm a anotação `secret.reloader.stakater.com/reload: mapa-env`.
+Quando o `mapa-env` muda, o Reloader (`infrastructure/reloader`) reinicia os dois sozinho.

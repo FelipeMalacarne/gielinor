@@ -1,0 +1,18 @@
+# Reloader: reinicia um Deployment quando um Secret que ele referencia muda. Os Secrets
+# daqui (KSOPS) e os Deployments dos repos dos apps chegam por Applications diferentes do
+# Argo, sem hash em comum, então o pod pode subir antes do Secret novo. Opt-in: só age em
+# workload anotado (secret.reloader.stakater.com/reload: <nome>), nada de autoReloadAll.
+reloader:
+  # Grava reloader.stakater.com/last-reloaded-from no template do pod, em vez de uma env
+  # nova no container: o diff de três vias do Argo não acusa campo que o Git não declara,
+  # então o selfHeal não desfaz o restart.
+  reloadStrategy: annotations
+  logFormat: json
+  deployment:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
