@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: home-assistant
+  labels:
+    app.kubernetes.io/name: home-assistant
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: home-assistant
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: home-assistant
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      # O pacote do Wake-on-LAN é broadcast e não sai da rede de pods. Na rede do host, a porta
+      # 8123 fica atrás do firewall do NixOS, que só a libera para a rede de pods (o Traefik).
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      # A imagem sobe pelo s6-overlay, que precisa de root.
+      initContainers:
+        - name: ui-includes
+          image: ghcr.io/home-assistant/home-assistant:2026.11.2
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - touch /config/automations.yaml /config/scripts.yaml /config/scenes.yaml
+          volumeMounts:
+            - name: data
+              mountPath: /config
+      containers:
+        - name: home-assistant
+          # Versão exata, atualizada pelo Renovate (renovate.json na raiz).
+          image: ghcr.io/home-assistant/home-assistant:2026.11.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8123
+              protocol: TCP
+          env:
+            - name: TZ
+              value: America/Sao_Paulo
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          startupProbe:
+            httpGet:
+              path: /manifest.json
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /manifest.json
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /config
+            - name: config
+              mountPath: /config/configuration.yaml
+              subPath: configuration.yaml
+              readOnly: true
+            - name: ssh-key
+              mountPath: /ssh
+              readOnly: true
+            - name: ssh-known-hosts
+              mountPath: /ssh-known-hosts
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: home-assistant-data
+        - name: config
+          configMap:
+            name: home-assistant-config
+        # O ssh recusa chave privada que outros usuários podem ler.
+        - name: ssh-key
+          secret:
+            secretName: home-assistant-ssh
+            defaultMode: 0400
+        - name: ssh-known-hosts
+          configMap:
+            name: home-assistant-config
+            items:
+              - key: known_hosts
+                path: known_hosts

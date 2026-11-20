@@ -1,0 +1,14 @@
+# /config: o banco do recorder (SQLite), o .storage com integrações e usuários, e as automações.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: home-assistant-data
+  labels:
+    app.kubernetes.io/name: home-assistant
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi

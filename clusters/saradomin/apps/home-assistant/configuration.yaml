@@ -1,0 +1,28 @@
+# O resto da configuração (local, integrações, usuários) é feito pela interface e fica no PVC.
+default_config:
+
+# Os editores da interface gravam nestes arquivos; o initContainer cria os que faltarem.
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# O Traefik chega pelo IP do pod, na rede de pods do K3s.
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 10.42.0.0/16
+
+# Liga o zaros pelo Wake-on-LAN, suspende pelo SSH e mostra se ele está ligado pelo ping.
+switch:
+  - platform: wake_on_lan
+    name: zaros
+    mac: "04:7c:16:db:d9:e1"
+    host: 10.10.0.20
+    turn_off:
+      action: shell_command.suspend_zaros
+
+# O authorized_keys do zaros troca qualquer comando desta chave por `systemctl suspend`.
+shell_command:
+  suspend_zaros: >-
+    ssh -T -i /ssh/id_ed25519 -o BatchMode=yes -o UserKnownHostsFile=/ssh-known-hosts/known_hosts
+    felipe@10.10.0.20

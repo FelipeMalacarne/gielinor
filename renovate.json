@@ -21,6 +21,15 @@
       "matchStrings": ["image: docker\\.io/(?<depName>searxng/searxng):(?<currentValue>\\S+)@(?<currentDigest>sha256:[a-f0-9]+)"],
       "datasourceTemplate": "docker",
       "versioningTemplate": "regex:^(?<major>\\d{4})\\.(?<minor>\\d{1,2})\\.(?<patch>\\d{1,2})-[0-9a-f]+$"
+    },
+    {
+      "customType": "regex",
+      "description": "Home Assistant: versões com ano e mês (2026.11.2). A regex deixa de fora as betas (2026.12.0b1) e as tags stable e latest.",
+      "managerFilePatterns": ["/^clusters/saradomin/apps/home-assistant/deployment\\.yaml$/"],
+      "matchStrings": ["image: ghcr\\.io/(?<depName>home-assistant/home-assistant):(?<currentValue>\\d+\\.\\d+\\.\\d+)\\s"],
+      "datasourceTemplate": "docker",
+      "registryUrlTemplate": "https://ghcr.io",
+      "versioningTemplate": "regex:^(?<major>\\d{4})\\.(?<minor>\\d{1,2})\\.(?<patch>\\d+)$"
     }
   ],
   "packageRules": [
@@ -35,6 +44,13 @@
       "description": "SearXNG sai quase todo dia, e os buscadores quebram os scrapers dele: um PR por semana, com automerge.",
       "matchDepNames": ["searxng/searxng"],
       "schedule": ["* 0-5 * * 1"],
+      "automerge": true,
+      "ignoreTests": true
+    },
+    {
+      "description": "Os patches do Home Assistant entram sozinhos. A versão do mês (minor, e a de janeiro, que vira major) traz breaking changes nas notas e fica num PR esperando revisão.",
+      "matchDepNames": ["home-assistant/home-assistant"],
+      "matchUpdateTypes": ["patch"],
       "automerge": true,
       "ignoreTests": true
     }
