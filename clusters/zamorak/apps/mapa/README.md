@@ -29,3 +29,15 @@ repositório do mapa e é atualizado pelo CI dele a cada merge na `main`.
 
 Antes do crawl completo: aumentar o volume do `postgres-main` (10 Gi hoje) e ligar o
 backup Barman para o R2 (ADR-015 e ADR-017 do mapa).
+
+## MCP de admin (ADR-076 do mapa)
+
+O MCP só leitura, que o conector do Claude usa, responde em `https://mapa-mcp.ftm.dev.br/mcp`.
+O túnel e o DNS estão em `terraform/cloudflare/main.tf`, e o Ingress fica no repositório do mapa.
+Ele só liga quando o `mapa-env` tem estas três chaves:
+- `MCP_ALLOWED_SUBJECTS`: o user ID do dono no Zitadel;
+- `MCP_OIDC_AUDIENCE`: o project ID do projeto `mapa` no Zitadel;
+- `MCP_OIDC_SCOPES`: o escopo de audiência desse projeto.
+
+O issuer e a URL pública ficam no ConfigMap do overlay. Para desligar o MCP, apague
+`MCP_ALLOWED_SUBJECTS`.
