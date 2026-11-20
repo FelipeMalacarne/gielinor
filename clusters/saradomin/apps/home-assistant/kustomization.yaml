@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Home Assistant em home.saradomin.ftm.dev.br, só pela LAN e pelo tailnet. Roda na rede do host para
+# o pacote do Wake-on-LAN sair na LAN. Detalhes: README.md.
+namespace: automation
+
+resources:
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+
+# Com o hash no nome, mudar o configuration.yaml troca o ConfigMap e reinicia o pod.
+configMapGenerator:
+  - name: home-assistant-config
+    files:
+      - configuration.yaml
+      - known_hosts
+    options:
+      labels:
+        app.kubernetes.io/name: home-assistant
+
+# A chave SSH que suspende o zaros.
+generators:
+  - ksops.yaml
