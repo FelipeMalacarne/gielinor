@@ -30,6 +30,15 @@
       "datasourceTemplate": "docker",
       "registryUrlTemplate": "https://ghcr.io",
       "versioningTemplate": "regex:^(?<major>\\d{4})\\.(?<minor>\\d{1,2})\\.(?<patch>\\d+)$"
+    },
+    {
+      "customType": "regex",
+      "description": "A imagem da Playwright do estudio-render (o initContainer e o container usam a mesma): tags v1.65.1-noble com digest. A regex deixa de fora as canary e as outras distros. Sem automerge: a imagem traz o Node do servidor e do render.",
+      "managerFilePatterns": ["/^clusters/saradomin/apps/estudio-render/deployment\\.yaml$/"],
+      "matchStrings": ["image: mcr\\.microsoft\\.com/(?<depName>playwright):(?<currentValue>v\\d+\\.\\d+\\.\\d+-noble)@(?<currentDigest>sha256:[a-f0-9]+)"],
+      "datasourceTemplate": "docker",
+      "registryUrlTemplate": "https://mcr.microsoft.com",
+      "versioningTemplate": "regex:^v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-(?<compatibility>noble)$"
     }
   ],
   "packageRules": [

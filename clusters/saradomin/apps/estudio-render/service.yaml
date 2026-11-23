@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: estudio-render
+  labels:
+    app.kubernetes.io/name: estudio-render
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: estudio-render
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
