@@ -2,9 +2,9 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: estudio-render-dados
+  name: estudio-dados
   labels:
-    app.kubernetes.io/name: estudio-render
+    app.kubernetes.io/name: estudio
 spec:
   accessModes:
     - ReadWriteOnce

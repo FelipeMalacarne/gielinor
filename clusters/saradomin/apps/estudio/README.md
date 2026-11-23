@@ -1,14 +1,16 @@
-# estudio-render no saradomin
+# estudio no saradomin
 
 O n8n não renderiza: a imagem dele não tem Chromium, e o node Execute Command vem desligado na
-2.x. Este é o worker HTTP que renderiza os shorts do
-[estudio](https://github.com/FelipeMalacarne/estudio) a pedido do n8n (`../n8n`). A API e o
-comportamento estão no `scripts/servidor.ts` do estudio.
+2.x. Este é o worker de mídia do [estudio](https://github.com/FelipeMalacarne/estudio), chamado
+pelo n8n (`../n8n`). A primeira rota é o `/render`, que renderiza os shorts; as próximas
+(`/transcrever` para a narração do canal tech, `/quadro` para capas) entram como rotas próprias,
+cada uma com a entrada validada. Ele não roda comando arbitrário: para isso existe o
+`../n8n-sandbox`. A API e o comportamento estão no `scripts/servidor.ts` do estudio.
 
-Fica só dentro do cluster, sem Ingress, em `http://estudio-render.automation.svc:8080`. A
+Fica só dentro do cluster, sem Ingress, em `http://estudio.automation.svc:8080`. A
 NetworkPolicy aceita conexões só do pod do n8n e deixa o worker sair só para a internet (o GitHub e
 o registry do npm). Toda rota, menos `GET /saude`, pede o cabeçalho `X-Estudio-Token` com o
-`ESTUDIO_TOKEN` de `estudio-render-secrets`. O callback do fim do lote também sai para a internet,
+`ESTUDIO_TOKEN` de `estudio-secrets`. O callback do fim do lote também sai para a internet,
 então ele chega no n8n pela URL pública (`$execution.resumeUrl`).
 
 A imagem é a da [Playwright](https://mcr.microsoft.com/en-us/artifact/mar/playwright), fixada por
@@ -34,7 +36,7 @@ reiniciar, o n8n pede de novo, e o que já está em disco não é renderizado ou
    pelo token novo:
 
    ```sh
-   sops clusters/saradomin/apps/estudio-render/secrets.yaml
+   sops clusters/saradomin/apps/estudio/secrets.yaml
    ```
 
    O `sops` abre o arquivo decifrado no editor e o cifra de novo ao salvar. Faça o commit só do
@@ -45,16 +47,16 @@ reiniciar, o n8n pede de novo, e o que já está em disco não é renderizado ou
 4. **n8n.** Crie no n8n uma credencial *Header Auth* com o nome `X-Estudio-Token` e o valor de:
 
    ```sh
-   sops -d --extract '["stringData"]["ESTUDIO_TOKEN"]' clusters/saradomin/apps/estudio-render/secrets.yaml
+   sops -d --extract '["stringData"]["ESTUDIO_TOKEN"]' clusters/saradomin/apps/estudio/secrets.yaml
    ```
 
 ## Conferir
 
 ```sh
-kubectl --context=saradomin -n automation get pods -l app.kubernetes.io/name=estudio-render
-kubectl --context=saradomin -n automation logs deploy/estudio-render -c baixa-servidor
+kubectl --context=saradomin -n automation get pods -l app.kubernetes.io/name=estudio
+kubectl --context=saradomin -n automation logs deploy/estudio -c baixa-servidor
 kubectl --context=saradomin -n automation exec deploy/n8n -c n8n -- \
-  wget -qO- http://estudio-render.automation.svc:8080/saude
+  wget -qO- http://estudio.automation.svc:8080/saude
 ```
 
 Se o pod ficar em `Init:CrashLoopBackOff`, o log do `baixa-servidor` mostra a resposta do GitHub.
@@ -62,7 +64,7 @@ Um 401 ou 404 quer dizer que o PAT expirou ou não alcança o estudio.
 
 ## Atualizar
 
-- **Servidor:** `kubectl --context=saradomin -n automation rollout restart deploy/estudio-render`.
+- **Servidor:** `kubectl --context=saradomin -n automation rollout restart deploy/estudio`.
 - **Imagem:** o Renovate abre um PR quando sai uma versão nova da Playwright (`renovate.json` na
   raiz). Ele fica esperando revisão, porque a imagem traz o Node que roda o servidor e o render.
 - **PAT:** fine-grained tokens expiram. Troque-o com o passo 2 e reinicie o pod.
