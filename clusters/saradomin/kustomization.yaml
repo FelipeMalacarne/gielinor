@@ -35,6 +35,8 @@ resources:
   - apps/n8n-sandbox
   # A busca na web do n8n Assistant, só dentro do cluster: apps/searxng/README.md.
   - apps/searxng
+  # O worker de mídia do estudio (render dos shorts), chamado pelo n8n, só dentro do cluster: apps/estudio/README.md.
+  - apps/estudio
   # Home Assistant, só pela LAN e pelo tailnet, na rede do host: apps/home-assistant/README.md.
   - apps/home-assistant
 

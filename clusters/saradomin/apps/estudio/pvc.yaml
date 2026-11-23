@@ -1,0 +1,14 @@
+# /dados: o servidor, as fontes e os node_modules por commit, o cache do npm e os vídeos.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: estudio-dados
+  labels:
+    app.kubernetes.io/name: estudio
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi

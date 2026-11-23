@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# O worker de mídia do estudio, chamado pelo n8n (por ora, o render dos shorts). Só dentro do
+# cluster, para o pod do n8n: README.md.
+namespace: automation
+
+resources:
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml
+
+generators:
+  - ksops.yaml

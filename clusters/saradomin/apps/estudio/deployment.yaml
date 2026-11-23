@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: estudio
+  labels:
+    app.kubernetes.io/name: estudio
+spec:
+  replicas: 1
+  # O PVC é ReadWriteOnce, e a fila de renders vive na memória de um pod só.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: estudio
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: estudio
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      # pwuser, o usuário sem root da imagem da Playwright.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      # O servidor vem da main do estudio a cada partida: para atualizá-lo, reinicie o pod. O
+      # tarball é extraído ao lado e só troca o anterior quando chega inteiro.
+      initContainers:
+        - name: baixa-servidor
+          image: mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -euo
+            - pipefail
+            - -c
+            - |
+              rm -rf /dados/servidor.novo
+              mkdir -p /dados/servidor.novo
+              curl -fsSL --retry 3 \
+                -H "Authorization: Bearer $GITHUB_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                https://api.github.com/repos/FelipeMalacarne/estudio/tarball/main \
+                | tar -xz --strip-components=1 -C /dados/servidor.novo
+              rm -rf /dados/servidor
+              mv /dados/servidor.novo /dados/servidor
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: estudio-secrets
+                  key: GITHUB_TOKEN
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: dados
+              mountPath: /dados
+      containers:
+        - name: estudio
+          # A mesma imagem do initContainer. Atualizada pelo Renovate (renovate.json na raiz), num
+          # PR esperando revisão: ela traz o Node que roda o servidor e o render.
+          image: mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579
+          imagePullPolicy: IfNotPresent
+          command:
+            - node
+            - /dados/servidor/scripts/servidor.ts
+          env:
+            - name: ESTUDIO_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: estudio-secrets
+                  key: ESTUDIO_TOKEN
+            # O servidor baixa o tarball de cada commit pedido.
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: estudio-secrets
+                  key: GITHUB_TOKEN
+            - name: DADOS
+              value: /dados
+            - name: PORTA
+              value: "8080"
+            - name: RETER_DIAS
+              value: "30"
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # Pede pouco (o nó já tem 84% da CPU reservada) e deixa o render usar o que estiver livre.
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: "3"
+              memory: 4Gi
+          # O render roda num processo filho, então o /saude responde durante um lote.
+          readinessProbe:
+            httpGet:
+              path: /saude
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /saude
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: dados
+              mountPath: /dados
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        - name: dados
+          persistentVolumeClaim:
+            claimName: estudio-dados
+        # O /dev/shm padrão do container tem 64 MiB, pouco para o Chromium. Conta no limite de
+        # memória.
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi

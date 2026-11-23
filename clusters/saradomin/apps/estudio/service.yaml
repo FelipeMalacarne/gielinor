@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: estudio
+  labels:
+    app.kubernetes.io/name: estudio
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: estudio
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
