@@ -24,7 +24,7 @@ Este diretório é um componente do Kustomize, ligado e desligado inteiro em `..
 
    `ContinuousArchiving` deve estar `True` e o backup em `completed`. No bucket aparece `postgres-main/wals/` e `postgres-main/base/`.
 
-O plugin precisa estar rodando antes do passo 4: `kubectl --context=saradomin -n databases rollout status deploy/barman-cloud`. Ele sobe sozinho com `infrastructure/cnpg`.
+O plugin precisa estar rodando antes do passo 4: `kubectl --context=saradomin -n databases rollout status deploy/plugin-barman-cloud`. Ele sobe sozinho com `infrastructure/cnpg`.
 
 ## Se o arquivamento falhar
 
