@@ -1,0 +1,15 @@
+# Backup do postgres-main no R2: WAL contínuo e um backup base por semana, guardados por
+# 7 dias. É um componente para ligar e desligar inteiro, porque com o arquivamento
+# falhando o Postgres guarda o WAL no disco até encher o volume. Detalhes: README.md.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - objectstore.yaml
+  - scheduledbackup.yaml
+
+generators:
+  - ksops.yaml
+
+patches:
+  - path: cluster-plugin.yaml

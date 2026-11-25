@@ -15,4 +15,7 @@ transformers:
 # Os bancos que o Mesa (no saradomin) cria para os apps daqui: o Database, o role e os
 # Secrets de cada um, escritos pelo próprio Mesa (clusters/saradomin/apps/mesa/README.md).
 components:
+  # Backup no R2 (WAL contínuo e um backup base por semana): backup/README.md. Se o
+  # arquivamento quebrar, o WAL que não sai acumula no disco; comentar desliga.
+  - backup
   - mesa

@@ -1,0 +1,17 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: postgres-main-weekly
+spec:
+  # Semanal e não diário como no saradomin: o banco tem ~11 GB e um backup base ocupa a
+  # CPU do nó por um tempo; o WAL contínuo já cobre os pontos entre um e outro. Seis
+  # campos, com segundos, em UTC: domingo 06:17 UTC, 03:17 em São Paulo.
+  schedule: "0 17 6 * * 0"
+  # O primeiro sai assim que o ScheduledBackup é criado, sem esperar o domingo.
+  immediate: true
+  backupOwnerReference: self
+  cluster:
+    name: postgres-main
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
