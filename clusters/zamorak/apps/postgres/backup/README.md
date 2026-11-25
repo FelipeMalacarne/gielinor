@@ -35,6 +35,8 @@ Como no saradomin: um `Cluster` novo com `bootstrap.recovery`, sem sobrescrever 
 
 Use a mesma imagem do `postgres-main` (Postgres 18) e um `storage.size` que caiba o banco.
 
+Testado em 2026-11-25 no saradomin, com um `ObjectStore` temporário apontando para `s3://gielinor-postgres-backups/zamorak/` (as credenciais de lá são as mesmas): o banco de ~11 GB subiu em 3 minutos, com o WAL repetido até o último segmento arquivado, e as contagens das tabelas maiores do `mapa` bateram com a produção. Restaurar em outro cluster é assim, com o `barmanObjectName` apontando para esse `ObjectStore`.
+
 ## Desastre (nó novo)
 
 Se o zamorak for recriado do zero, o `postgres-main` precisa nascer do backup, e não vazio. Antes do primeiro sync do Argo no nó novo, num PR:
@@ -43,3 +45,19 @@ Se o zamorak for recriado do zero, o `postgres-main` precisa nascer do backup, e
 2. Em `cluster-plugin.yaml`, acrescente `serverName: postgres-main-2` aos `parameters`. O plugin recusa arquivar numa pasta que já tem WAL, e a pasta `postgres-main` é a que está sendo restaurada.
 
 O nome do `Cluster` continua `postgres-main`, então os apps conectam sem mudar nada, e os roles com as senhas vêm dos Secrets daqui. Depois que o banco subir, o `bootstrap` pode sair do `cluster.yaml` (o CNPG só o usa na criação). O `serverName` fica: o próximo desastre restaura de `postgres-main-2`.
+
+Confira o primeiro backup com `kubectl --context=zamorak -n databases get backups`. Quando o Argo sobe tudo junto, o `ScheduledBackup` cria o backup imediato antes de o helm-controller instalar o plugin, e ele falha com `requested plugin is not available` (aconteceu na primeira vez, em 2026-11-25). O CNPG não tenta de novo, e o próximo só sai no domingo. Nesse caso, crie um à mão:
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: postgres-main-<data>
+  namespace: databases
+spec:
+  cluster:
+    name: postgres-main
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+```
