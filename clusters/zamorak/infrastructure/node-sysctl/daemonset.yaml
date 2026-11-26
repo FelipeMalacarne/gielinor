@@ -1,0 +1,53 @@
+# Limites de inotify do nó. O padrão (128 instâncias por usuário) esgota: quase todo
+# contêiner roda como root e divide a mesma cota, e o kubelet passa a escrever
+# "failed to create fsnotify watcher: too many open files" no log de cada contêiner.
+# A VM não está em código, então o valor vem daqui e volta a cada reinício do nó.
+# O init lista antes quem segura instâncias, para achar um vazamento no log do pod.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-sysctl
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: node-sysctl
+  template:
+    metadata:
+      labels:
+        app: node-sysctl
+    spec:
+      hostPID: true
+      initContainers:
+        - name: inotify
+          image: busybox:1.36.1
+          securityContext:
+            privileged: true
+          command:
+            - sh
+            - -c
+            - |
+              for p in /proc/[0-9]*; do
+                n=$(ls -l "$p/fd" 2>/dev/null | grep -c 'anon_inode:inotify')
+                [ "$n" -gt 0 ] && echo "$n pid=${p#/proc/} $(tr '\0' ' ' < "$p/cmdline" | cut -c1-80)"
+              done | sort -rn | head -15
+              echo "antes: instances=$(cat /proc/sys/fs/inotify/max_user_instances) watches=$(cat /proc/sys/fs/inotify/max_user_watches)"
+              # Só sobe: nunca baixa um valor que alguém já tenha aumentado no nó.
+              [ "$(cat /proc/sys/fs/inotify/max_user_instances)" -lt 512 ] && sysctl -w fs.inotify.max_user_instances=512
+              [ "$(cat /proc/sys/fs/inotify/max_user_watches)" -lt 524288 ] && sysctl -w fs.inotify.max_user_watches=524288
+              echo "depois: instances=$(cat /proc/sys/fs/inotify/max_user_instances) watches=$(cat /proc/sys/fs/inotify/max_user_watches)"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 8Mi
+            limits:
+              memory: 16Mi
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.10
+          resources:
+            requests:
+              cpu: 1m
+              memory: 4Mi
+            limits:
+              memory: 8Mi
