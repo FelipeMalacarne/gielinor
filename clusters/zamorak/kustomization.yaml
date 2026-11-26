@@ -11,6 +11,7 @@ resources:
   - infrastructure/whoami
   - infrastructure/cnpg
   - infrastructure/reloader
+  - infrastructure/node-sysctl
   - apps/postgres
   - apps/redis
   - apps/vaultwarden
