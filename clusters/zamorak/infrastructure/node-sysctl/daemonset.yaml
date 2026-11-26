@@ -1,8 +1,8 @@
-# Limites de inotify do nó. O padrão (128 instâncias por usuário) esgota: quase todo
-# contêiner roda como root e divide a mesma cota, e o kubelet passa a escrever
-# "failed to create fsnotify watcher: too many open files" no log de cada contêiner.
-# A VM não está em código, então o valor vem daqui e volta a cada reinício do nó.
-# O init lista antes quem segura instâncias, para achar um vazamento no log do pod.
+# Limites de inotify do nó. O padrão (128 instâncias por usuário) não basta: quase
+# todo contêiner roda como root e divide a mesma cota, que o kubelet (um vigia por log
+# seguido) e os containerd-shim (2 a 3 por contêiner) já enchem. Esgotada, o kubelet
+# escreve "failed to create fsnotify watcher: too many open files" no log de cada
+# contêiner. A VM não está em código, então o valor vem daqui a cada reinício do nó.
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -17,7 +17,6 @@ spec:
       labels:
         app: node-sysctl
     spec:
-      hostPID: true
       initContainers:
         - name: inotify
           image: busybox:1.36.1
@@ -27,15 +26,10 @@ spec:
             - sh
             - -c
             - |
-              for p in /proc/[0-9]*; do
-                n=$(ls -l "$p/fd" 2>/dev/null | grep -c 'anon_inode:inotify')
-                [ "$n" -gt 0 ] && echo "$n pid=${p#/proc/} $(tr '\0' ' ' < "$p/cmdline" | cut -c1-80)"
-              done | sort -rn | head -15
-              echo "antes: instances=$(cat /proc/sys/fs/inotify/max_user_instances) watches=$(cat /proc/sys/fs/inotify/max_user_watches)"
               # Só sobe: nunca baixa um valor que alguém já tenha aumentado no nó.
               [ "$(cat /proc/sys/fs/inotify/max_user_instances)" -lt 512 ] && sysctl -w fs.inotify.max_user_instances=512
               [ "$(cat /proc/sys/fs/inotify/max_user_watches)" -lt 524288 ] && sysctl -w fs.inotify.max_user_watches=524288
-              echo "depois: instances=$(cat /proc/sys/fs/inotify/max_user_instances) watches=$(cat /proc/sys/fs/inotify/max_user_watches)"
+              echo "instances=$(cat /proc/sys/fs/inotify/max_user_instances) watches=$(cat /proc/sys/fs/inotify/max_user_watches)"
           resources:
             requests:
               cpu: 10m
