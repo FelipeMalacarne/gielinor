@@ -1,0 +1,156 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-mcp
+  labels:
+    app.kubernetes.io/name: grafana-mcp
+spec:
+  replicas: 1
+  # O PVC é ReadWriteOnce e o BoltDB aceita um processo só.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: grafana-mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: grafana-mcp
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        # A porta de entrada: servidor OAuth próprio (metadados, registro dinâmico de cliente,
+        # token), login delegado ao Zitadel e só o `sub` da allowlist passa. Repassa o /mcp ao
+        # mcp-grafana em localhost.
+        - name: auth-proxy
+          image: ghcr.io/sigbit/mcp-auth-proxy:v2.11.0@sha256:23a2feee0322dda0f81c83b746666f7271c44626f0176ae7abb362ac217d4d73
+          imagePullPolicy: IfNotPresent
+          args:
+            - http://127.0.0.1:8000
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: LISTEN
+              value: ":8080"
+            # TLS termina na Cloudflare; o pod fala HTTP com o Traefik.
+            - name: NO_AUTO_TLS
+              value: "true"
+            - name: EXTERNAL_URL
+              value: https://grafana-mcp.ftm.dev.br
+            - name: OIDC_CONFIGURATION_URL
+              value: https://auth.ftm.dev.br/.well-known/openid-configuration
+            - name: OIDC_PROVIDER_NAME
+              value: Zitadel
+            # Pelo `sub`, não pelo e-mail: o Zitadel tem registro aberto e o e-mail de uma conta
+            # nova pode não estar verificado. Com a lista vazia o proxy deixa qualquer um entrar.
+            - name: OIDC_USER_ID_FIELD
+              value: /sub
+            - name: OIDC_ALLOWED_USERS
+              value: "397001843903365292"
+            - name: OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-mcp-secrets
+                  key: OIDC_CLIENT_ID
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-mcp-secrets
+                  key: OIDC_CLIENT_SECRET
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: data
+              mountPath: /data
+        # O MCP do Grafana, só em localhost: quem chega de fora passa pelo auth-proxy. Fala com o
+        # Grafana pelo Service, com o token do service account `claude-mcp`, cujas permissões
+        # (Viewer, Edit só na pasta Claude) são o limite real do que o Claude pode fazer.
+        - name: mcp-grafana
+          image: docker.io/grafana/mcp-grafana:2.4.0@sha256:63d4501d3166c2b9242d8a2b5b7df8892c59c6c477be3a2a61bcf8a252671f31
+          imagePullPolicy: IfNotPresent
+          command:
+            - /app/mcp-grafana
+          args:
+            - --transport=streamable-http
+            - --address=127.0.0.1:8000
+            - --healthz-address=:8081
+            # Só o que existe no Grafana do saradomin: sem Tempo, Pyroscope, OnCall, Incident,
+            # renderer. `api` (chamada livre à API do Grafana) fica de fora.
+            - --enabled-tools=search,datasource,prometheus,loki,alerting,dashboard,folder,navigation,annotations,runpanelquery
+          ports:
+            - name: healthz
+              containerPort: 8081
+              protocol: TCP
+          env:
+            - name: GRAFANA_URL
+              value: http://kube-prometheus-stack-grafana.observability.svc
+            # Por padrão ele manda estatísticas de uso à Grafana Labs.
+            - name: GRAFANA_USAGE_STATS
+              value: disabled
+            - name: GRAFANA_SERVICE_ACCOUNT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-mcp-secrets
+                  key: GRAFANA_SERVICE_ACCOUNT_TOKEN
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            periodSeconds: 10
+            timeoutSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: grafana-mcp-data

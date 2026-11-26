@@ -37,6 +37,9 @@ resources:
   - apps/searxng
   # Home Assistant, só pela LAN e pelo tailnet, na rede do host: apps/home-assistant/README.md.
   - apps/home-assistant
+  # MCP do Grafana para o Claude, público em grafana-mcp.ftm.dev.br com login no Zitadel:
+  # apps/grafana-mcp/README.md.
+  - apps/grafana-mcp
 
 labels:
   - pairs:

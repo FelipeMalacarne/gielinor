@@ -271,6 +271,12 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "saradomin_tunnel_con
         service  = "http://traefik.networking.svc.cluster.local:80"
       },
       {
+        # O MCP do Grafana para o Claude (clusters/saradomin/apps/grafana-mcp). Sem Access na
+        # frente: o conector do claude.ai faz o OAuth do próprio proxy, que entra pelo Zitadel.
+        hostname = "grafana-mcp.${var.zone}"
+        service  = "http://traefik.networking.svc.cluster.local:80"
+      },
+      {
         service = "http_status:404"
       }
     ]
@@ -350,4 +356,14 @@ resource "cloudflare_dns_record" "n8n_dns" {
   ttl     = 1
   proxied = true
   comment = "[terraform] saradomin n8n"
+}
+
+resource "cloudflare_dns_record" "grafana_mcp_dns" {
+  zone_id = var.zone_id
+  name    = "grafana-mcp.${var.zone}"
+  content = "${cloudflare_zero_trust_tunnel_cloudflared.saradomin_tunnel.id}.cfargotunnel.com"
+  type    = "CNAME"
+  ttl     = 1
+  proxied = true
+  comment = "[terraform] saradomin MCP do Grafana"
 }

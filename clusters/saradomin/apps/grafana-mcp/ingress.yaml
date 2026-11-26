@@ -1,0 +1,22 @@
+# Público: o túnel da Cloudflare entrega no entrypoint web (terraform/cloudflare/main.tf). O host
+# inteiro vai para o mcp-auth-proxy, que serve o /mcp, os metadados OAuth (/.well-known/*), o
+# servidor de autorização (/.idp/*) e o login (/.auth/*).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-mcp
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: grafana-mcp.ftm.dev.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana-mcp
+                port:
+                  name: http
