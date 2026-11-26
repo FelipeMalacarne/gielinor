@@ -9,6 +9,8 @@ resources:
   - logs-dashboard.yaml
   - log-volume-dashboard.yaml
   - cluster-overview-dashboard.yaml
+  - infra-health-dashboard.yaml
+  - mapa-service-dashboard.yaml
   - telemetry-gateway.yaml
   - disk-pressure-rules.yaml
 
