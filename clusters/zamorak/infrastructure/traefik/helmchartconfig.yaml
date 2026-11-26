@@ -1,0 +1,21 @@
+# Valores do Traefik que o K3s instala no zamorak (o HelmChart dele é do K3s; aqui só
+# se sobrepõem valores). Log de acesso em JSON para achar onde as chamadas do site à
+# API param (MAP-75 no Linear): StartUTC e Duration por pedido, com o X-Request-Id que o
+# Worker manda e que a API também grava. Os outros cabeçalhos ficam fora do log.
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    logs:
+      access:
+        enabled: true
+        format: json
+        fields:
+          headers:
+            defaultmode: drop
+            names:
+              X-Request-Id: keep
+              Cf-Ray: keep
