@@ -6,6 +6,7 @@ resources:
   - infrastructure/argocd
   - infrastructure/rabbitmq-operators
   - infrastructure/cloudflared
+  - infrastructure/traefik
   - infrastructure/tailscale
   - infrastructure/observability
   - infrastructure/whoami
